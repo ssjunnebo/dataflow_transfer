@@ -1,0 +1,31 @@
+[project]
+name = "dataflow_transfer"
+version = "0.0.1"
+description = "Script for transferring sequencing data from sequencers to storage"
+authors = [
+    { name = "Sara Sjunnebo", email = "sara.sjunnebo@scilifelab.se" },
+]
+readme = "README.md"
+
+requires-python = ">=3.11"
+dependencies = [
+    "click",
+    "PyYAML",
+]
+
+[project.optional-dependencies]
+
+dev = [
+    "ruff>=0.11.8",
+    "pytest",
+]
+
+[project.scripts]
+dataflow_transfer = "dataflow_transfer.cli:cli"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["dataflow_transfer"]

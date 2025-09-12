@@ -1,0 +1,16 @@
+*.egg-info
+*pyc
+dist
+build
+_build
+*.log
+.DS*
+.vagrant/
+.benchmarks
+.coverage
+__pycache__
+.pytest_cache
+.vscode
+.ruff_cache
+.mypy_cache
+node_modules

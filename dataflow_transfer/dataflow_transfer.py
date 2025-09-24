@@ -11,34 +11,39 @@ from dataflow_transfer.run_classes.element_runs import AvitiRun
 
 logger = logging.getLogger(__name__)
 
+def get_run_object(run_dir, sequencer, config):
+    if sequencer == "NovaSeqXPlus":
+        return NovaSeqXPlusRun(run_dir, config)
+    elif sequencer == "NextSeq":
+        return NextSeqRun(run_dir, config)
+    elif sequencer == "MiSeq":
+        return MiSeqRun(run_dir, config)
+    elif sequencer == "PromethION":
+        return PromethIONRun(run_dir, config)
+    elif sequencer == "MinION":
+        return MinIONRun(run_dir, config)
+    elif sequencer == "Aviti":
+        return AvitiRun(run_dir, config)
+    else:
+        return None
 
 def process_run(run_dir, sequencer, config):
-    # Initiate a Run object based on sequencer type
-    # e.g., run = IlluminaRun(run_dir, config)
-    if sequencer == "NovaSeqXPlus":
-        run = NovaSeqXPlusRun(run_dir, config)
-    elif sequencer == "NextSeq":
-        run = NextSeqRun(run_dir, config)
-    elif sequencer == "MiSeq":
-        run = MiSeqRun(run_dir, config)
-    elif sequencer == "PromethION":
-        run = PromethIONRun(run_dir, config)
-    elif sequencer == "MinION":
-        run = MinIONRun(run_dir, config)
-    elif sequencer == "Aviti":
-        run = AvitiRun(run_dir, config)
-    else:
+    run = get_run_object(run_dir, sequencer, config)
+    if not run:
         logger.warning(f"Unknown sequencer type: {sequencer}. Skipping run: {run_dir}")
         return
-    # check the status of the run based on the current state of the run dir
-    sequencing_status = run.check_sequencing_status()
-    # If the run is ongoing (i.e. final file does not exist):
-    # start an rsync process in the background to transfer the data to Miarka (with run-one to avoid multiple concurrent transfers)
-    # If the run is complete (i.e. final file exists):
-    # update the "Sequenced" satus to True
-    # initiate a final transfer
-    # update the "transferred" status to True
-    pass
+    if run.sequencing_ongoing():
+        logger.info(f"Sequencing is ongoing for {run_dir}. Starting background transfer.")
+        run.initiate_background_transfer()
+        #TODO: update statusdb with run stats
+        return
+    if not run.transfer_complete():
+        run.set_status("Sequenced", True)
+        logger.info(f"Sequencing is complete for {run_dir}. Starting final transfer.")
+        run.initiate_final_transfer()
+        run.set_status("Transferred", True)
+        #TODO: update statusdb with run stats
+        return
 
 
 def transfer_runs(conf, run=None):

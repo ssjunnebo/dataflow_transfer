@@ -1,4 +1,3 @@
-import os
 from dataflow_transfer.run_classes.generic_runs import Run
 
 
@@ -9,6 +8,10 @@ class IlluminaRun(Run):
         super().__init__(run_dir, configuration)
         self.final_file = "RTAComplete.txt"
         self.run_type = "Illumina"
+
+    def upload_stats(self):
+        # TODO: implement actual stats upload logic
+        print(f"Uploading stats for {self.run_dir}")
 
 
 class NovaSeqXPlusRun(IlluminaRun):

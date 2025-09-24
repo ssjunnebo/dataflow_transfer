@@ -11,6 +11,7 @@ from dataflow_transfer.run_classes.element_runs import AvitiRun
 
 logger = logging.getLogger(__name__)
 
+
 def get_run_object(run_dir, sequencer, config):
     if sequencer == "NovaSeqXPlus":
         return NovaSeqXPlusRun(run_dir, config)
@@ -27,22 +28,25 @@ def get_run_object(run_dir, sequencer, config):
     else:
         return None
 
+
 def process_run(run_dir, sequencer, config):
     run = get_run_object(run_dir, sequencer, config)
     if not run:
         logger.warning(f"Unknown sequencer type: {sequencer}. Skipping run: {run_dir}")
         return
     if run.sequencing_ongoing():
-        logger.info(f"Sequencing is ongoing for {run_dir}. Starting background transfer.")
+        logger.info(
+            f"Sequencing is ongoing for {run_dir}. Starting background transfer."
+        )
         run.initiate_background_transfer()
-        #TODO: update statusdb with run stats
+        run.upload_stats()
         return
     if not run.transfer_complete():
         run.set_status("Sequenced", True)
+        run.upload_stats()
         logger.info(f"Sequencing is complete for {run_dir}. Starting final transfer.")
         run.initiate_final_transfer()
         run.set_status("Transferred", True)
-        #TODO: update statusdb with run stats
         return
 
 

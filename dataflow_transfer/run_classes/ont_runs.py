@@ -1,5 +1,3 @@
-import os
-
 from dataflow_transfer.run_classes.generic_runs import Run
 
 
@@ -10,6 +8,10 @@ class NanoporeRun(Run):
         super().__init__(run_dir, configuration)
         self.final_file = "final_summary.txt"
         self.run_type = "Nanopore"
+
+    def upload_stats(self):
+        # TODO: implement actual stats upload logic
+        print(f"Uploading stats for {self.run_dir}")
 
 
 class PromethIONRun(NanoporeRun):

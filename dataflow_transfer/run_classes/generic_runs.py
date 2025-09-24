@@ -1,4 +1,7 @@
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Run:
@@ -17,11 +20,11 @@ class Run:
 
     def initiate_background_transfer(self):
         # Placeholder for background transfer logic
-        print(f"Initiating background transfer for {self.run_dir}")
+        logger.info(f"Initiating background transfer for {self.run_dir}")
 
     def initiate_final_transfer(self):
         # Placeholder for final transfer logic
-        print(f"Initiating final transfer for {self.run_dir}")
+        logger.info(f"Initiating final transfer for {self.run_dir}")
         # Create a .TRANSFERRED file to indicate transfer completion
 
     def transfer_complete(self):
@@ -29,3 +32,10 @@ class Run:
             return True
         else:
             return False
+
+    def set_status(self, status, value):
+        # Placeholder for setting status in a database or file
+        logger.info(f"Setting status {status} to {value} for {self.run_dir}")
+
+    def upload_stats(self):
+        raise NotImplementedError("Subclasses should implement this method")

@@ -46,7 +46,7 @@ def process_run(run_dir, sequencer, config):
         run.upload_stats()
         run.sync_metadata()
         logger.info(f"Sequencing is complete for {run_dir}. Starting final transfer.")
-        run.initiate_final_transfer()
+        run.do_final_transfer()
         run.set_status("Transferred", True)
         return
 

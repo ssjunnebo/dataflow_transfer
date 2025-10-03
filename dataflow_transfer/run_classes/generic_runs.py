@@ -38,7 +38,7 @@ class Run:
             transfer_details=self.configuration.get("transfer_details", {}),
         )
 
-    def initiate_final_transfer(self):
+    def do_final_transfer(self):
         logger.info(f"Initiating final transfer for {self.run_dir}")
         sync_to_hpc(
             run_path=self.run_dir,

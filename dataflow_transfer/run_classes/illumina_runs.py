@@ -10,10 +10,6 @@ class IlluminaRun(Run):
         self.final_file = "RTAComplete.txt"
         self.run_type = "Illumina"
 
-    def upload_stats(self):
-        # TODO: implement actual stats upload logic. Look at TACA aviti
-        print(f"Uploading stats for {self.run_dir}")
-
 
 class NovaSeqXPlusRun(IlluminaRun):
     """Defines a NovaSeq X Plus sequencing run"""

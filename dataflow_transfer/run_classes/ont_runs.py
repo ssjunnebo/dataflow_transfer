@@ -9,10 +9,6 @@ class NanoporeRun(Run):
         self.final_file = "final_summary.txt"
         self.run_type = "Nanopore"
 
-    def upload_stats(self):
-        # TODO: implement actual stats upload logic
-        print(f"Uploading stats for {self.run_dir}")
-
 
 class PromethIONRun(NanoporeRun):
     """Defines a PromethION sequencing run"""

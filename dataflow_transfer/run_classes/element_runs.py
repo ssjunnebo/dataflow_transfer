@@ -9,10 +9,6 @@ class ElementRun(Run):
         self.final_file = "RunUploaded.json"
         self.run_type = "Element"
 
-    def upload_stats(self):
-        # TODO: implement actual stats upload logic. Look at TACA aviti
-        print(f"Uploading stats for {self.run_dir}")
-
 
 class AvitiRun(ElementRun):
     """Defines an Aviti sequencing run"""

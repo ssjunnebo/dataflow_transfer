@@ -49,6 +49,9 @@ def process_run(run_dir, sequencer, config):
         run.do_final_transfer()
         run.set_status("Transferred", True)
         return
+    else:
+        logger.info(f"Transfer already completed for {run_dir}. No action needed.")
+        return
 
 
 def get_run_info(run):

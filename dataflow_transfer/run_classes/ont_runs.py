@@ -20,6 +20,7 @@ class PromethIONRun(NanoporeRun):
     def __init__(self, run_dir, configuration):
         super().__init__(run_dir, configuration)
         self.run_type = "PromethION"
+        self.miarka_destination = "/ont/promethion"
 
 
 class MinIONRun(NanoporeRun):
@@ -28,3 +29,4 @@ class MinIONRun(NanoporeRun):
     def __init__(self, run_dir, configuration):
         super().__init__(run_dir, configuration)
         self.run_type = "MinION"
+        self.miarka_destination = "/ont/minion"

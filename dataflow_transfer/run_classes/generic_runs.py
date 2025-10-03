@@ -1,6 +1,8 @@
 import os
 import logging
 
+from dataflow_transfer.utils.transfer import sync_to_hpc
+
 logger = logging.getLogger(__name__)
 
 
@@ -9,7 +11,12 @@ class Run:
 
     def __init__(self, run_dir, configuration):
         self.run_dir = run_dir
+        self.run_id = os.path.basename(run_dir)
         self.configuration = configuration
+        self.final_file = ""
+        self.rsync_log = os.path.join(
+            self.run_dir, "rsync.log"
+        )  # TODO: add timestamp to log filename
 
     def sequencing_ongoing(self):
         final_file_path = os.path.join(self.run_dir, self.final_file)
@@ -19,23 +26,37 @@ class Run:
             return False
 
     def initiate_background_transfer(self):
-        # Placeholder for background transfer logic
         logger.info(f"Initiating background transfer for {self.run_dir}")
+        sync_to_hpc(
+            run_path=self.run_dir,
+            destination=self.miarka_destination,
+            rsync_log=self.rsync_log,
+            background=True,
+            transfer_details=self.configuration.get("transfer_details", {}),
+        )
 
     def initiate_final_transfer(self):
-        # Placeholder for final transfer logic
         logger.info(f"Initiating final transfer for {self.run_dir}")
-        # Create a .TRANSFERRED file to indicate transfer completion
+        sync_to_hpc(
+            run_path=self.run_dir,
+            destination=self.miarka_destination,
+            rsync_log=self.rsync_log,
+            background=False,
+            transfer_details=self.configuration.get("transfer_details", {}),
+        )
+
+    def sync_metadata(self):
+        # TODO: implement actual metadata sync logic. Look at TACA
+        pass
 
     def transfer_complete(self):
-        if os.path.exists(self.run_dir + "/.TRANSFERRED"):
-            return True
-        else:
-            return False
+        # TODO: check the status in statusdb
+        pass
 
     def set_status(self, status, value):
-        # Placeholder for setting status in a database or file
+        # TODO: implement actual status update logic. Look at TACA aviti
         logger.info(f"Setting status {status} to {value} for {self.run_dir}")
 
     def upload_stats(self):
-        raise NotImplementedError("Subclasses should implement this method")
+        # TODO: implement actual stats upload logic. Each subclasss can have a "gather_info" method that is called here
+        pass

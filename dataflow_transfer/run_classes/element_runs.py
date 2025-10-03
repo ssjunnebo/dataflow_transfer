@@ -10,7 +10,7 @@ class ElementRun(Run):
         self.run_type = "Element"
 
     def upload_stats(self):
-        # TODO: implement actual stats upload logic
+        # TODO: implement actual stats upload logic. Look at TACA aviti
         print(f"Uploading stats for {self.run_dir}")
 
 
@@ -20,3 +20,4 @@ class AvitiRun(ElementRun):
     def __init__(self, run_dir, configuration):
         super().__init__(run_dir, configuration)
         self.run_type = "Aviti"
+        self.miarka_destination = "/element/aviti"

@@ -44,6 +44,7 @@ def process_run(run_dir, sequencer, config):
     if not run.transfer_complete():
         run.set_status("Sequenced", True)
         run.upload_stats()
+        run.sync_metadata()
         logger.info(f"Sequencing is complete for {run_dir}. Starting final transfer.")
         run.initiate_final_transfer()
         run.set_status("Transferred", True)

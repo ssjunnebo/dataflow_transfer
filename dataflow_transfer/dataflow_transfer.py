@@ -1,6 +1,5 @@
 import logging
 import os
-import shutil
 
 from dataflow_transfer.run_classes.illumina_runs import (
     NovaSeqXPlusRun,

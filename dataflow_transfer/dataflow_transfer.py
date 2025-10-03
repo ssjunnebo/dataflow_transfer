@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 
 from dataflow_transfer.run_classes.illumina_runs import (
     NovaSeqXPlusRun,
@@ -51,11 +52,22 @@ def process_run(run_dir, sequencer, config):
         return
 
 
+def get_run_info(run):
+    if os.path.isabs(run) and os.path.isdir(run):
+        run_dir = run
+    elif os.path.isdir(run):
+        run_dir = os.path.abspath(run)
+    else:
+        raise ValueError(f"Provided run path is not a valid directory: {run}")
+    sequencer = os.path.basename(os.path.dirname(run_dir))
+    return run_dir, sequencer
+
+
 def transfer_runs(conf, run=None):
     if run:
         logger.info(f"Transferring specific run: {run}")
-        sequencer = "unknown"
-        process_run(run, sequencer, conf)
+        run_dir, sequencer = get_run_info(run)
+        process_run(run_dir, sequencer, conf)
     else:
         logger.info("Transferring all runs as per configuration")
         sequencing_dirs = conf.get("sequencing_dirs", {})

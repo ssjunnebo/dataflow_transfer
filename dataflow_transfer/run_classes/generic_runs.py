@@ -26,7 +26,7 @@ class Run:
         if os.path.exists(final_file_path):
             return False
         else:
-            return False
+            return True
 
     def initiate_background_transfer(self):
         logger.info(f"Initiating background transfer for {self.run_dir}")

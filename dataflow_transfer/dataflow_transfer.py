@@ -7,7 +7,7 @@ from dataflow_transfer.run_classes.illumina_runs import (
     MiSeqRun,
 )
 from dataflow_transfer.run_classes.ont_runs import PromethIONRun, MinIONRun
-from dataflow_transfer.run_classes.element_runs import AvitiRun
+from dataflow_transfer.run_classes.element_runs import AVITIRun
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ def get_run_object(run_dir, sequencer, config):
     elif sequencer == "MinION":
         return MinIONRun(run_dir, config)
     elif sequencer == "Aviti":
-        return AvitiRun(run_dir, config)
+        return AVITIRun(run_dir, config)
     else:
         return None
 

@@ -5,7 +5,6 @@ class IlluminaRun(Run):
     """Defines an Illumina sequencing run"""
 
     def __init__(self, run_dir, configuration):
-        self.run_type = "Illumina"
         super().__init__(run_dir, configuration)
         self.final_file = "RTAComplete.txt"
 

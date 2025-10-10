@@ -5,7 +5,6 @@ class ONTRun(Run):
     """Defines a ONT sequencing run"""
 
     def __init__(self, run_dir, configuration):
-        self.run_type = "ONT"
         super().__init__(run_dir, configuration)
         self.final_file = "final_summary.txt"
 

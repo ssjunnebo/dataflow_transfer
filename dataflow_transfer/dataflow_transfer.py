@@ -61,7 +61,9 @@ def get_run_info(run):
         run_dir = os.path.abspath(run)
     else:
         raise ValueError(f"Provided run path is not a valid directory: {run}")
-    sequencer = os.path.basename(os.path.dirname(run_dir))
+    sequencer = os.path.basename(
+        os.path.dirname(run_dir)
+    )  # TODO: fix this for NextSeq and Aviti
     return run_dir, sequencer
 
 
@@ -81,7 +83,7 @@ def transfer_runs(conf, run=None):
                 if os.path.isdir(run_dir_path):
                     logger.info(f"Processing directory: {run_dir_path}")
                     try:
-                        process_run(run_dir, sequencer, conf)
+                        process_run(run_dir_path, sequencer, conf)
                     except Exception as e:
                         logger.error(f"Error processing run {run_dir}: {e}")
                         continue  # Continue with the next run

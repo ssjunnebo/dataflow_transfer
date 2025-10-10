@@ -38,9 +38,8 @@ def sync_to_hpc(
         "--log-file=" + rsync_log,
         "--chown=" + transfer_details.get("owner"),
         "--chmod=" + transfer_details.get("permissions"),
-        remote_destination,
         run_path,
-        destination,
+        remote_destination,
     ]
 
     if rsync_is_running(

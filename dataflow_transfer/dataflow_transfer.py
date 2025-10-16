@@ -1,32 +1,15 @@
 import logging
 import os
-
-from dataflow_transfer.run_classes.illumina_runs import (
-    NovaSeqXPlusRun,
-    NextSeqRun,
-    MiSeqRun,
-)
-from dataflow_transfer.run_classes.ont_runs import PromethIONRun, MinIONRun
-from dataflow_transfer.run_classes.element_runs import AVITIRun
+from dataflow_transfer.run_classes.registry import RUN_CLASS_REGISTRY
 
 logger = logging.getLogger(__name__)
 
 
 def get_run_object(run_dir, sequencer, config):
-    if sequencer == "NovaSeqXPlus":
-        return NovaSeqXPlusRun(run_dir, config)
-    elif sequencer == "NextSeq":
-        return NextSeqRun(run_dir, config)
-    elif sequencer == "MiSeq":
-        return MiSeqRun(run_dir, config)
-    elif sequencer == "PromethION":
-        return PromethIONRun(run_dir, config)
-    elif sequencer == "MinION":
-        return MinIONRun(run_dir, config)
-    elif sequencer == "Aviti":
-        return AVITIRun(run_dir, config)
-    else:
-        return None
+    run_class = RUN_CLASS_REGISTRY.get(sequencer)
+    if run_class:
+        return run_class(run_dir, config)
+    return None
 
 
 def process_run(run_dir, sequencer, config):

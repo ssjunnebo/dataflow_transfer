@@ -1,4 +1,5 @@
 from dataflow_transfer.run_classes.generic_runs import Run
+from .registry import register_run_class
 
 
 class IlluminaRun(Run):
@@ -9,25 +10,31 @@ class IlluminaRun(Run):
         self.final_file = "RTAComplete.txt"
 
 
+@register_run_class
 class NovaSeqXPlusRun(IlluminaRun):
     """Defines a NovaSeq X Plus sequencing run"""
 
+    run_type = "NextSeq"
+
     def __init__(self, run_dir, configuration):
-        self.run_type = "NovaSeqXPlus"
         super().__init__(run_dir, configuration)
 
 
+@register_run_class
 class NextSeqRun(IlluminaRun):
     """Defines a NextSeq sequencing run"""
 
+    run_type = "NextSeq"
+
     def __init__(self, run_dir, configuration):
-        self.run_type = "NextSeq"
         super().__init__(run_dir, configuration)
 
 
+@register_run_class
 class MiSeqRun(IlluminaRun):
     """Defines a MiSeq sequencing run"""
 
+    run_type = "MiniSeq"
+
     def __init__(self, run_dir, configuration):
-        self.run_type = "MiniSeq"
         super().__init__(run_dir, configuration)

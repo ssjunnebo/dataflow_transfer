@@ -18,7 +18,7 @@ class Run:
             self.run_dir, "rsync.log"
         )  # TODO: add timestamp to log filename
         self.miarka_destination = self.configuration.get("miarka_destination").get(
-            self.run_type
+            getattr(self, "run_type", None)
         )
 
     def sequencing_ongoing(self):

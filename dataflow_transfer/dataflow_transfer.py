@@ -14,6 +14,7 @@ def get_run_object(run_dir, sequencer, config):
 
 def process_run(run_dir, sequencer, config):
     run = get_run_object(run_dir, sequencer, config)
+    run.confirm_run_type()
     if not run:
         logger.warning(f"Unknown sequencer type: {sequencer}. Skipping run: {run_dir}")
         return
@@ -37,23 +38,19 @@ def process_run(run_dir, sequencer, config):
         return
 
 
-def get_run_info(run):
+def get_run_dir(run):
     if os.path.isabs(run) and os.path.isdir(run):
-        run_dir = run
+        return run
     elif os.path.isdir(run):
-        run_dir = os.path.abspath(run)
+        return os.path.abspath(run)
     else:
         raise ValueError(f"Provided run path is not a valid directory: {run}")
-    sequencer = os.path.basename(
-        os.path.dirname(run_dir)
-    )  # TODO: fix this for NextSeq and Aviti
-    return run_dir, sequencer
 
 
-def transfer_runs(conf, run=None):
+def transfer_runs(conf, run=None, sequencer=None):
     if run:
         logger.info(f"Transferring specific run: {run}")
-        run_dir, sequencer = get_run_info(run)
+        run_dir = get_run_dir(run)
         process_run(run_dir, sequencer, conf)
     else:
         logger.info("Transferring all runs as per configuration")

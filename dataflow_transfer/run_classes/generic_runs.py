@@ -21,6 +21,11 @@ class Run:
             getattr(self, "run_type", None)
         )
 
+    def confirm_run_type(self):
+        # compare run ID with expected format for NovaSeq X Plus
+        # TODO: check that run_id_format is correct regex
+        pass
+
     def sequencing_ongoing(self):
         final_file_path = os.path.join(self.run_dir, self.final_file)
         if os.path.exists(final_file_path):

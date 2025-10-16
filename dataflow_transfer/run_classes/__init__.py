@@ -1,3 +1,5 @@
+# This adds the run classes to the registry. Do not remove.
+
 from .registry import RUN_CLASS_REGISTRY
 
 

@@ -34,7 +34,7 @@ class NextSeqRun(IlluminaRun):
 class MiSeqRun(IlluminaRun):
     """Defines a MiSeq sequencing run"""
 
-    run_type = "MiniSeq"
+    run_type = "MiSeq"
 
     def __init__(self, run_dir, configuration):
         super().__init__(run_dir, configuration)

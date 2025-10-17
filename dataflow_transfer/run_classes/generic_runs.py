@@ -1,5 +1,6 @@
 import os
 import logging
+import re
 
 from dataflow_transfer.utils.transfer import sync_to_hpc
 
@@ -22,9 +23,11 @@ class Run:
         )
 
     def confirm_run_type(self):
-        # compare run ID with expected format for NovaSeq X Plus
-        # TODO: check that run_id_format is correct regex
-        pass
+        # Compare run ID with expected format for the run type
+        if not re.match(self.run_id_format, self.run_id):
+            raise ValueError(
+                f"Run ID {self.run_id} does not match expected format for {getattr(self, 'run_type', 'Unknown')} runs."
+            )
 
     def sequencing_ongoing(self):
         final_file_path = os.path.join(self.run_dir, self.final_file)

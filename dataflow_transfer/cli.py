@@ -55,6 +55,10 @@ def cli(config_file, run, sequencer):
         raise click.UsageError(
             "--sequencer/-s can only be used together with --run/-r."
         )
+    if run and not sequencer:
+        raise click.UsageError(
+            "--run/-r requires --sequencer/-s to be specified."
+        )
     config = load_config(config_file.name)
     log_file = config.get("log", {}).get("file", None)
     if log_file:

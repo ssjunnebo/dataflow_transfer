@@ -50,6 +50,7 @@ def cli(config_file, run, sequencer):
     Args:
         config_file (file): Path to the configuration file.
         run (str): A identifier, e.g., '20250528_LH00217_0219_A22TT52LT4'.
+        sequencer (str): Sequencer type, e.g., 'NovaSeqXPlus', 'MiSeq', 'AVITI'.
     """
     if sequencer and not run:
         raise click.UsageError(

@@ -19,8 +19,8 @@ def sync_to_hpc(
     run_path: str,
     destination: str,
     rsync_log: str,
-    background: bool,
     transfer_details: dict = {},
+    rsync_exit_code_file: os.PathLike = None,
 ):
     """Sync the run to storage using rsync.
     Skip if rsync is already running on the run."""
@@ -42,6 +42,13 @@ def sync_to_hpc(
         remote_destination,
     ]
 
+    if rsync_exit_code_file:
+        command.extend(
+            [
+                f"; echo $? > {rsync_exit_code_file}",
+            ]
+        )
+
     if rsync_is_running(
         src=run_path, dst=remote_destination
     ):  # TODO: check if this works as intended
@@ -50,25 +57,8 @@ def sync_to_hpc(
         )
         return False
     else:
-        if background:
-            p_background = subprocess.Popen(command)
-            logger.info(
-                f"{os.path.basename(run_path)}: Started background rsync to {remote_destination}"
-                + f" with PID {p_background.pid} and the following command: '{' '.join(command)}'"
-            )
-        else:
-            logger.info(
-                f"{os.path.basename(run_path)}: Starting foreground rsync to {remote_destination}"
-                + f" with the following command: '{' '.join(command)}'"
-            )
-            p_foreground = subprocess.run(command)
-            if p_foreground.returncode == 0:
-                logger.info(
-                    f"{os.path.basename(run_path)}: Rsync to {remote_destination} finished successfully."
-                )
-                return True
-            else:
-                logger.error(
-                    f"{os.path.basename(run_path)}: Rsync to {remote_destination} failed with error code {p_foreground.returncode}."
-                )
-                return False
+        background_process = subprocess.Popen(command)
+        logger.info(
+            f"{os.path.basename(run_path)}: Started background rsync to {remote_destination}"
+            + f" with PID {background_process.pid} and the following command: '{' '.join(command)}'"
+        )

@@ -9,33 +9,47 @@ def get_run_object(run_dir, sequencer, config):
     run_class = RUN_CLASS_REGISTRY.get(sequencer)
     if run_class:
         return run_class(run_dir, config)
-    return None
+    else:
+        raise ValueError(
+            f"Unknown sequencer type: {sequencer}. Skipping run: {run_dir}"
+        )
 
 
 def process_run(run_dir, sequencer, config):
     run = get_run_object(run_dir, sequencer, config)
     run.confirm_run_type()
-    if not run:
-        logger.warning(f"Unknown sequencer type: {sequencer}. Skipping run: {run_dir}")
+    if run.get_status("final_transfer_completed"):
+        logger.info(f"Transfer already completed for {run_dir}. No action needed.")
         return
     if run.sequencing_ongoing():
+        run.update_statusdb(status="sequencing_started")
         logger.info(
             f"Sequencing is ongoing for {run_dir}. Starting background transfer."
         )
         run.initiate_background_transfer()
-        run.upload_stats()
+        run.update_statusdb(status="transfer_started")
         return
     if not run.transfer_complete():
-        run.set_status("Sequenced", True)
-        run.upload_stats()
+        if run.get_status("sequencing_completed"):
+            logger.info(
+                f"Run {run_dir} is already marked as sequenced, but transfer not complete. Will attempt final transfer again."
+            )
+        run.update_statusdb(status="sequencing_completed")
         run.sync_metadata()
         logger.info(f"Sequencing is complete for {run_dir}. Starting final transfer.")
         run.do_final_transfer()
-        run.set_status("Transferred", True)
+        run.update_statusdb(status="final_transfer_started")
+        return
+    if run.final_sync_successful:
+        logger.info(f"Final transfer completed successfully for {run_dir}.")
+        run.update_statusdb(status="final_transfer_completed")
         return
     else:
-        logger.info(f"Transfer already completed for {run_dir}. No action needed.")
-        return
+        logger.error(f"Final transfer failed for {run_dir}. Please check rsync logs.")
+        raise RuntimeError(
+            f"Final transfer failed for {run_dir}."
+        )  # TODO: we could retry? e.g log nr of retries in the DB and retry N times before sending aout an email warning?
+        # Removing the final transfer indicator should let the run retry next iteration
 
 
 def get_run_dir(run):

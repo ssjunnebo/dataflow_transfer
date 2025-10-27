@@ -48,6 +48,7 @@ def sync_to_hpc(
                 f"; echo $? > {rsync_exit_code_file}",
             ]
         )
+    command_str = " ".join(command)
 
     if rsync_is_running(
         src=run_path, dst=remote_destination
@@ -57,8 +58,10 @@ def sync_to_hpc(
         )
         return False
     else:
-        background_process = subprocess.Popen(command)
+        background_process = subprocess.Popen(
+            command_str, stdout=subprocess.PIPE, shell=True
+        )
         logger.info(
             f"{os.path.basename(run_path)}: Started background rsync to {remote_destination}"
-            + f" with PID {background_process.pid} and the following command: '{' '.join(command)}'"
+            + f" with PID {background_process.pid} and the following command: '{command_str}'"
         )

@@ -40,7 +40,7 @@ def process_run(run_dir, sequencer, config):
         run.do_final_transfer()
         run.update_statusdb(status="final_transfer_started")
         return
-    if run.final_sync_successful:
+    if run.final_sync_successful():
         logger.info(f"Final transfer completed successfully for {run_dir}.")
         run.update_statusdb(status="final_transfer_completed")
         return

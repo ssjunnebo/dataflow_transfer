@@ -15,9 +15,10 @@ class Run:
         self.run_id = os.path.basename(run_dir)
         self.configuration = configuration
         self.final_file = ""
-        self.rsync_log = os.path.join(
-            self.run_dir, "rsync.log"
-        )  # TODO: add timestamp to log filename
+        self.rsync_log = os.path.join(self.run_dir, "rsync.log")
+        self.final_rsync_exitcode_file = os.path.join(
+            self.run_dir, "final_rsync_exitcode"
+        )
         self.miarka_destination = self.configuration.get("miarka_destination").get(
             getattr(self, "run_type", None)
         )
@@ -42,7 +43,6 @@ class Run:
             run_path=self.run_dir,
             destination=self.miarka_destination,
             rsync_log=self.rsync_log,
-            background=True,
             transfer_details=self.configuration.get("transfer_details", {}),
         )
 
@@ -52,22 +52,29 @@ class Run:
             run_path=self.run_dir,
             destination=self.miarka_destination,
             rsync_log=self.rsync_log,
-            background=False,
             transfer_details=self.configuration.get("transfer_details", {}),
+            rsync_exit_code_file=self.final_rsync_exitcode_file,
         )
+
+    def final_sync_successful(self):
+        if os.path.exists(self.final_rsync_exitcode_file):
+            with open(self.final_rsync_exitcode_file, "r") as f:
+                exit_code = f.read().strip()
+                if exit_code == "0":
+                    return True
+        return False
 
     def sync_metadata(self):
         # TODO: implement actual metadata sync logic. Look at TACA
         pass
 
     def transfer_complete(self):
-        # TODO: check the status in statusdb
+        return os.path.exists(self.final_rsync_exitcode_file)
+
+    def get_status(self, status_name):
+        # TODO: get statuses from view in statusdb and return true or false depending on if the status is set
         pass
 
-    def set_status(self, status, value):
-        # TODO: implement actual status update logic. Look at TACA aviti
-        logger.info(f"Setting status {status} to {value} for {self.run_dir}")
-
-    def upload_stats(self):
-        # TODO: implement actual stats upload logic. Each subclasss can have a "gather_info" method that is called here
-        pass
+    def update_statusdb(self, status):
+        # TODO: implement actual status update logic. Look at TACA aviti. Always fetch the latest doc from statusdb and use this for updating
+        logger.info(f"Setting status {status} for {self.run_dir}")

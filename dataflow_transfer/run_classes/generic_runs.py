@@ -1,8 +1,11 @@
 import os
 import logging
 import re
+from datetime import datetime
 
 from dataflow_transfer.utils.transfer import sync_to_hpc
+from dataflow_transfer.utils.statusdb import StatusdbSession
+from dataflow_transfer.utils.filesystem import parse_metadata_files
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +25,7 @@ class Run:
         self.miarka_destination = self.configuration.get("miarka_destination").get(
             getattr(self, "run_type", None)
         )
+        self.db = StatusdbSession(self.configuration.get("statusdb"))
 
     def confirm_run_type(self):
         # Compare run ID with expected format for the run type
@@ -75,6 +79,44 @@ class Run:
         # TODO: get statuses from view in statusdb and return true or false depending on if the status is set
         pass
 
-    def update_statusdb(self, status):
-        # TODO: implement actual status update logic. Look at TACA aviti. Always fetch the latest doc from statusdb and use this for updating
+    def locate_metadata_files(self):
+        files_to_locate = self.configuration.get("metadata_files").get(
+            getattr(self, "run_type", None)
+        )
+        located_files = []
+        for file_pattern in files_to_locate:
+            file_path = os.path.join(
+                self.run_dir, file_pattern
+            )  # TODO: check if all files are in the root or if we need to search subdirs
+            if os.path.exists(file_path):
+                located_files.append(file_path)
+        return located_files
+
+    def update_statusdb(self, status, additional_info=None):
+        """Update the statusdb document for this run with the given status and associated metadata files."""
         logger.info(f"Setting status {status} for {self.run_dir}")
+        db_doc = self.db.get_db_doc(self.run_id)
+        if not db_doc:
+            db_doc = {
+                "runfolder_id": self.run_id,
+                "flowcell_id": self.flowcell_id,
+                "events": [],
+            }
+        files_to_include = self.locate_metadata_files()
+        for file in files_to_include:
+            if "files" in db_doc and os.path.basename(file) in db_doc["files"]:
+                files_to_include.remove(
+                    file
+                )  # TODO: This excludes files that are already uploaded, but could there be incomplete documents that should be updated? Is it better to always re-parse and update?
+        parsed_files = parse_metadata_files(files_to_include)
+        if "files" not in db_doc:
+            db_doc["files"] = {}
+        db_doc["files"].update(parsed_files)
+        db_doc["events"].append(
+            {
+                "status": status,
+                "timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "data": additional_info or {},
+            }
+        )
+        self.db.update_db_doc(db_doc)

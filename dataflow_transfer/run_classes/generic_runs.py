@@ -155,7 +155,9 @@ class Run:
     def update_statusdb(self, status, additional_info=None):
         """Update the statusdb document for this run with the given status and associated metadata files."""
         logger.info(f"Setting status {status} for {self.run_dir}")
-        db_doc = self.db.get_db_doc(self.run_id)
+        db_doc = self.db.get_db_doc(
+            view="viewname", run_id=self.run_id
+        )  # TODO: add the correct view and possibly use flowcell ID instead of run ID
         if not db_doc:
             db_doc = {
                 "runfolder_id": self.run_id,

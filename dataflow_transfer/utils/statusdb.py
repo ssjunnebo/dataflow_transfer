@@ -13,6 +13,7 @@ class StatusdbSession:
         password = config.get("password")
         url = config.get("url")
         display_url_string = f"https://{user}:********@{url}"
+        self.db_name = config.get("database")
         self.connection = cloudant_v1.CloudantV1(
             authenticator=CouchDbSessionAuthenticator(user, password)
         )
@@ -26,8 +27,10 @@ class StatusdbSession:
                 f"Couchdb connection failed for URL {display_url_string} with error: {e}"
             )
 
-    def get_db_doc(self, run_id):
-        pass
+    def get_db_doc(self, view, run_id):
+        return self.connection.get_document(
+            db=self.db_name, doc_id=view.get(run_id)
+        ).get_result()
 
     def update_db_doc(self):
-        pass
+        pass  # TODO: implement, look at TACA

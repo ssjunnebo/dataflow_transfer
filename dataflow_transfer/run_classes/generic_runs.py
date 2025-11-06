@@ -3,7 +3,11 @@ import logging
 import re
 from datetime import datetime
 
-from dataflow_transfer.utils.transfer import sync_to_hpc
+from dataflow_transfer.utils.transfer import (
+    generate_transfer_command,
+    rsync_is_running,
+    sync_to_hpc,
+)
 from dataflow_transfer.utils.statusdb import StatusdbSession
 from dataflow_transfer.utils.filesystem import parse_metadata_files
 
@@ -41,23 +45,79 @@ class Run:
         else:
             return True
 
+    def generate_transfer_command(self, is_final_sync=False):
+        """Generate the rsync command string for transferring the run to storage."""
+        transfer_details = self.configuration.get("transfer_details", {})
+        remote_destination = (
+            transfer_details.get("user")
+            + "@"
+            + transfer_details.get("host")
+            + ":"
+            + self.miarka_destination
+        )
+
+        command = [
+            "run-one",
+            "rsync",
+            "-au",
+            "--log-file=" + self.rsync_log,
+            "--chown=" + transfer_details.get("owner"),
+            "--chmod=" + transfer_details.get("permissions"),
+            self.run_dir,
+            remote_destination,
+        ]
+
+        if is_final_sync:
+            command.extend(
+                [
+                    f"; echo $? > {self.final_rsync_exitcode_file}",
+                ]
+            )
+        command_str = " ".join(command)
+        return command_str
+
     def initiate_background_transfer(self):
         logger.info(f"Initiating background transfer for {self.run_dir}")
-        sync_to_hpc(
-            run_path=self.run_dir,
-            destination=self.miarka_destination,
-            rsync_log=self.rsync_log,
-            transfer_details=self.configuration.get("transfer_details", {}),
+        background_transfer_command = self.generate_transfer_command(
+            is_final_sync=False
         )
+        if rsync_is_running(src=self.run_dir):
+            logger.info(
+                f"Rsync is already running for {self.run_dir}. Skipping background transfer initiation."
+            )
+            return
+        sync_to_hpc(background_transfer_command)
+        logger.info(
+            f"{os.path.basename(self.run_dir)}: Started background rsync to {self.miarka_destination}"
+            + f" with the following command: '{background_transfer_command}'"
+        )
+        rsync_info = {
+            "command": background_transfer_command,
+            "destination_path": self.miarka_destination,
+        }
+        self.update_statusdb(status="transfer_started", additional_info=rsync_info)
 
     def do_final_transfer(self):
         logger.info(f"Initiating final transfer for {self.run_dir}")
-        sync_to_hpc(
-            run_path=self.run_dir,
-            destination=self.miarka_destination,
-            rsync_log=self.rsync_log,
-            transfer_details=self.configuration.get("transfer_details", {}),
-            rsync_exit_code_file=self.final_rsync_exitcode_file,
+
+        final_transfer_command = generate_transfer_command(is_final_sync=True)
+        if rsync_is_running(src=self.run_dir):
+            logger.info(
+                f"Rsync is already running for {self.run_dir}. Skipping final transfer initiation."
+            )
+            return
+
+        sync_to_hpc(final_transfer_command)
+        logger.info(
+            f"{os.path.basename(self.run_dir)}: Started FINAL rsync to {self.miarka_destination}"
+            + f" with the following command: '{final_transfer_command}'"
+        )
+        rsync_info = {
+            "command": final_transfer_command,
+            "destination_path": self.miarka_destination,
+        }
+        self.update_statusdb(
+            status="final_transfer_started", additional_info=rsync_info
         )
 
     def final_sync_successful(self):

@@ -27,7 +27,6 @@ def process_run(run_dir, sequencer, config):
             f"Sequencing is ongoing for {run_dir}. Starting background transfer."
         )
         run.initiate_background_transfer()
-        run.update_statusdb(status="transfer_started")
         return
     if not run.transfer_complete():
         if run.get_status("sequencing_completed"):
@@ -35,10 +34,9 @@ def process_run(run_dir, sequencer, config):
                 f"Run {run_dir} is already marked as sequenced, but transfer not complete. Will attempt final transfer again."
             )
         run.update_statusdb(status="sequencing_completed")
-        run.sync_metadata()
+        run.sync_metadata()  # TODO: this potentially takes a really long time
         logger.info(f"Sequencing is complete for {run_dir}. Starting final transfer.")
         run.do_final_transfer()
-        run.update_statusdb(status="final_transfer_started")
         return
     if run.final_sync_successful():
         logger.info(f"Final transfer completed successfully for {run_dir}.")

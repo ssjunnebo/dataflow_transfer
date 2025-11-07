@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 
 def rsync_is_running(src):
-    """Check if rsync is already running for given src and dst."""
+    """Check if rsync is already running for given src."""
     pattern = f"rsync.*{src}"
     try:
         subprocess.check_output(["pgrep", "-f", pattern])

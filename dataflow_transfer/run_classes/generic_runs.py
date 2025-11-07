@@ -186,4 +186,3 @@ class Run:
         self.db.update_db_doc(
             db_doc
         )  # TODO: how to handle if this update fails? The entry in statusdb would be incomplete
-        print(db_doc)

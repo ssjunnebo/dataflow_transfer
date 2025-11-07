@@ -18,7 +18,7 @@ def get_run_object(run_dir, sequencer, config):
 def process_run(run_dir, sequencer, config):
     run = get_run_object(run_dir, sequencer, config)
     run.confirm_run_type()
-    if run.get_status("final_transfer_completed"):
+    if run.get_status("transferred_to_hpc"):
         logger.info(f"Transfer already completed for {run_dir}. No action needed.")
         return
     if run.sequencing_ongoing():
@@ -29,7 +29,7 @@ def process_run(run_dir, sequencer, config):
         run.initiate_background_transfer()
         return
     if not run.transfer_complete():
-        if run.get_status("sequencing_completed"):
+        if run.get_status("sequencing_finished"):
             logger.info(
                 f"Run {run_dir} is already marked as sequenced, but transfer not complete. Will attempt final transfer again."
             )

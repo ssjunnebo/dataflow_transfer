@@ -3,11 +3,7 @@ import logging
 import re
 from datetime import datetime
 
-from dataflow_transfer.utils.transfer import (
-    generate_transfer_command,
-    rsync_is_running,
-    sync_to_hpc,
-)
+from dataflow_transfer.utils.transfer import rsync_is_running, sync_to_hpc
 from dataflow_transfer.utils.statusdb import StatusdbSession
 from dataflow_transfer.utils.filesystem import parse_metadata_files
 
@@ -100,7 +96,7 @@ class Run:
     def do_final_transfer(self):
         logger.info(f"Initiating final transfer for {self.run_dir}")
 
-        final_transfer_command = generate_transfer_command(is_final_sync=True)
+        final_transfer_command = self.generate_transfer_command(is_final_sync=True)
         if rsync_is_running(src=self.run_dir):
             logger.info(
                 f"Rsync is already running for {self.run_dir}. Skipping final transfer initiation."
@@ -136,8 +132,14 @@ class Run:
         return os.path.exists(self.final_rsync_exitcode_file)
 
     def get_status(self, status_name):
-        # TODO: get statuses from view in statusdb and return true or false depending on if the status is set
-        pass
+        events = self.db.get_events(self.run_id)["rows"]
+        current_statuses = {}
+        if events:
+            current_statuses = events[0]["value"]
+        if current_statuses.get(status_name):
+            return True
+        else:
+            return False
 
     def locate_metadata_files(self):
         files_to_locate = self.configuration.get("metadata_files").get(
@@ -156,8 +158,8 @@ class Run:
         """Update the statusdb document for this run with the given status and associated metadata files."""
         logger.info(f"Setting status {status} for {self.run_dir}")
         db_doc = self.db.get_db_doc(
-            view="viewname", run_id=self.run_id
-        )  # TODO: add the correct view and possibly use flowcell ID instead of run ID
+            ddoc="lookup", view="runfolder_id", run_id=self.run_id
+        )
         if not db_doc:
             db_doc = {
                 "runfolder_id": self.run_id,
@@ -181,4 +183,7 @@ class Run:
                 "data": additional_info or {},
             }
         )
-        self.db.update_db_doc(db_doc)
+        self.db.update_db_doc(
+            db_doc
+        )  # TODO: how to handle if thie update fails? The entry in statusdb would be incomplete
+        print(db_doc)

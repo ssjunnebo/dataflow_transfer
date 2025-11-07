@@ -8,7 +8,9 @@ class ElementRun(Run):
     def __init__(self, run_dir, configuration):
         super().__init__(run_dir, configuration)
         self.final_file = "RunUploaded.json"
-        self.flowcell_id = self.run_id.split("_")[-1]  # TODO: verify that this is true
+        self.flowcell_id = self.run_id.split("_")[
+            -1
+        ]  # This is true for all except Teton runs
 
 
 @register_run_class

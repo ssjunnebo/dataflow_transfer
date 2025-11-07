@@ -165,16 +165,16 @@ class Run:
                 "runfolder_id": self.run_id,
                 "flowcell_id": self.flowcell_id,
                 "events": [],
+                "files": {},
             }
         files_to_include = self.locate_metadata_files()
-        for file in files_to_include:
-            if "files" in db_doc and os.path.basename(file) in db_doc["files"]:
-                files_to_include.remove(
-                    file
-                )  # TODO: This excludes files that are already uploaded, but could there be incomplete documents that should be updated? Is it better to always re-parse and update?
+        if db_doc["files"]:
+            for file in files_to_include:
+                if os.path.basename(file) in db_doc["files"]:
+                    files_to_include.remove(
+                        file
+                    )  # TODO: This excludes files that are already uploaded, but could there be incomplete documents that should be updated? Is it better to always re-parse and update?
         parsed_files = parse_metadata_files(files_to_include)
-        if "files" not in db_doc:
-            db_doc["files"] = {}
         db_doc["files"].update(parsed_files)
         db_doc["events"].append(
             {

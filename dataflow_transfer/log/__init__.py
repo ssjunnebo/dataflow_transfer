@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 
 # session id is the timestamp when this module is imported (script start)
-SESSION_ID = datetime.now().strftime("%Y%m%d%H%M%S")
+SESSION_ID = datetime.now().strftime("%y%m%d%H%M")
 
 
 class SessionFilter(logging.Filter):

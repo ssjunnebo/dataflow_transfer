@@ -1,6 +1,6 @@
 [project]
 name = "dataflow_transfer"
-version = "0.0.1"
+version = "0.1.0"
 description = "Script for transferring sequencing data from sequencers to storage"
 authors = [
     { name = "Sara Sjunnebo", email = "sara.sjunnebo@scilifelab.se" },
@@ -11,6 +11,7 @@ requires-python = ">=3.11"
 dependencies = [
     "click",
     "PyYAML",
+    "xmltodict"
 ]
 
 [project.optional-dependencies]

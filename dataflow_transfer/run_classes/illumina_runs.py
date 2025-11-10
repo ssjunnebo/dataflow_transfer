@@ -8,6 +8,7 @@ class IlluminaRun(Run):
     def __init__(self, run_dir, configuration):
         super().__init__(run_dir, configuration)
         self.final_file = "RTAComplete.txt"
+        self.flowcell_id = self.run_id.split("_")[-1]
 
 
 @register_run_class

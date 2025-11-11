@@ -156,7 +156,7 @@ class Run:
         for file_pattern in files_to_locate:
             file_path = os.path.join(
                 self.run_dir, file_pattern
-            )  # TODO: check if all files are in the root or if we need to search subdirs
+            )
             if os.path.exists(file_path):
                 located_files.append(file_path)
         return located_files

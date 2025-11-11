@@ -19,6 +19,7 @@ def process_run(run_dir, sequencer, config):
     run = get_run_object(run_dir, sequencer, config)
     run.confirm_run_type()
     if run.get_status("transferred_to_hpc"):
+        # TODO: Removing the final transfer indicator should let the run retry next iteration. Add a check for the final transfer exit code file here to make this happen.
         logger.info(f"Transfer already completed for {run_dir}. No action needed.")
         return
     if run.sequencing_ongoing():
@@ -38,7 +39,7 @@ def process_run(run_dir, sequencer, config):
         run.update_statusdb(
             status="sequencing_finished"
         )  # TODO: only update sequencing_finished once
-        run.sync_metadata()  # TODO: this potentially takes a really long time
+        run.sync_metadata()  # This potentially takes a really long time. Consider what effects that would have.
         logger.info(f"Sequencing is complete for {run_dir}. Starting final transfer.")
         run.do_final_transfer()
         return
@@ -51,7 +52,6 @@ def process_run(run_dir, sequencer, config):
         raise RuntimeError(
             f"Final transfer failed for {run_dir}."
         )  # TODO: we could retry? e.g log nr of retries in the DB and retry N times before sending aout an email warning?
-        # Removing the final transfer indicator should let the run retry next iteration
 
 
 def get_run_dir(run):

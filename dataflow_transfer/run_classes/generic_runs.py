@@ -154,9 +154,7 @@ class Run:
         )
         located_files = []
         for file_pattern in files_to_locate:
-            file_path = os.path.join(
-                self.run_dir, file_pattern
-            )
+            file_path = os.path.join(self.run_dir, file_pattern)
             if os.path.exists(file_path):
                 located_files.append(file_path)
         return located_files
@@ -172,15 +170,16 @@ class Run:
                 "runfolder_id": self.run_id,
                 "flowcell_id": self.flowcell_id,
                 "events": [],
-                "files": {},
             }
         files_to_include = self.locate_metadata_files()
-        if db_doc["files"]:
+        if db_doc.get("files", {}):
             for file in files_to_include:
                 if os.path.basename(file) in db_doc["files"]:
-                    files_to_include.remove(
-                        file
-                    )  # TODO: This excludes files that are already uploaded, but could there be incomplete documents that should be updated? Is it better to always re-parse and update?
+                    files_to_include.remove(file)
+                    # TODO: This excludes files that are already uploaded, but could there be incomplete documents that should be updated? Is it better to always re-parse and update?
+        else:
+            # Initialize files dict if not present. This happens if the sample sheet daemon created the initial document without files.
+            db_doc["files"] = {}
         parsed_files = parse_metadata_files(files_to_include)
         db_doc["files"].update(parsed_files)
         db_doc["events"].append(

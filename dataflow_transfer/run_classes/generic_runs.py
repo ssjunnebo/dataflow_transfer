@@ -28,13 +28,14 @@ class Run:
         self.db = StatusdbSession(self.configuration.get("statusdb"))
 
     def confirm_run_type(self):
-        # Compare run ID with expected format for the run type
+        """Compare run ID with expected format for the run type."""
         if not re.match(self.run_id_format, self.run_id):
             raise ValueError(
                 f"Run ID {self.run_id} does not match expected format for {getattr(self, 'run_type', 'Unknown')} runs."
             )
 
     def sequencing_ongoing(self):
+        """Check if sequencing is still ongoing by looking for the absence of the final file."""
         final_file_path = os.path.join(self.run_dir, self.final_file)
         if os.path.exists(final_file_path):
             return False
@@ -73,6 +74,7 @@ class Run:
         return command_str
 
     def initiate_background_transfer(self):
+        """Start background rsync transfer to storage."""
         logger.info(f"Initiating background transfer for {self.run_dir}")
         background_transfer_command = self.generate_transfer_command(
             is_final_sync=False
@@ -94,6 +96,7 @@ class Run:
         self.update_statusdb(status="transfer_started", additional_info=rsync_info)
 
     def do_final_transfer(self):
+        """Start final rsync transfer to storage."""
         logger.info(f"Initiating final transfer for {self.run_dir}")
 
         final_transfer_command = self.generate_transfer_command(is_final_sync=True)
@@ -117,6 +120,7 @@ class Run:
         )
 
     def final_sync_successful(self):
+        """Check if the final rsync transfer was successful by reading the exit code file."""
         if os.path.exists(self.final_rsync_exitcode_file):
             with open(self.final_rsync_exitcode_file, "r") as f:
                 exit_code = f.read().strip()
@@ -129,9 +133,11 @@ class Run:
         pass
 
     def transfer_complete(self):
+        """Check if the final rsync exit code file exists, indicating transfer completion."""
         return os.path.exists(self.final_rsync_exitcode_file)
 
     def get_status(self, status_name):
+        """Check if a specific status exists in the statusdb events for this run."""
         events = self.db.get_events(self.run_id)["rows"]
         current_statuses = {}
         if events:
@@ -142,6 +148,7 @@ class Run:
             return False
 
     def locate_metadata_files(self):
+        """Locate metadata files in the run directory based on configuration."""
         files_to_locate = self.configuration.get("metadata_files").get(
             getattr(self, "run_type", None)
         )

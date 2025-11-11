@@ -56,6 +56,7 @@ class StatusdbSession:
         raise last_exception
 
     def get_db_doc(self, ddoc, view, run_id):
+        """Retrieve a document from the database via retried call."""
         doc_id = self.get_doc_id(ddoc, view, run_id)
         if doc_id:
             return self._retry_call(
@@ -66,6 +67,7 @@ class StatusdbSession:
         return None
 
     def get_doc_id(self, ddoc, view, run_id):
+        """Retrieve a document ID from the database via retried call."""
         result = self._retry_call(
             lambda: self.connection.post_view(
                 db=self.db_name,
@@ -80,6 +82,7 @@ class StatusdbSession:
             return None
 
     def get_events(self, run_id):
+        """Retrieve events for a run from the database via retried call."""
         return self._retry_call(
             lambda: self.connection.post_view(
                 db=self.db_name,
@@ -90,7 +93,7 @@ class StatusdbSession:
         )
 
     def update_db_doc(self, db_doc):
-        # Upload document to the database via retried call
+        """Upload document to the database via retried call."""
         try:
             self._retry_call(
                 lambda: self.connection.post_document(

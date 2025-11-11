@@ -18,10 +18,11 @@ def get_run_object(run_dir, sequencer, config):
 def process_run(run_dir, sequencer, config):
     run = get_run_object(run_dir, sequencer, config)
     run.confirm_run_type()
-    if run.get_status("transferred_to_hpc"):
-        # TODO: Removing the final transfer indicator should let the run retry next iteration. Add a check for the final transfer exit code file here to make this happen.
+    ## Case 1: Transfer already completed. Do nothing. Removing the final transfer indicator lets the run retry transfer the next iteration.
+    if run.get_status("transferred_to_hpc") and run.final_sync_successful():
         logger.info(f"Transfer already completed for {run_dir}. No action needed.")
         return
+    ## Case 2: Sequencing ongoing. Start background transfer if not already running.
     if run.sequencing_ongoing():
         run.update_statusdb(
             status="sequencing_started"
@@ -31,6 +32,7 @@ def process_run(run_dir, sequencer, config):
         )
         run.initiate_background_transfer()
         return
+    ## Case 3: Sequencing finished but transfer not complete. Sync metadata to ngi-nas-ns and start final transfer.
     if not run.transfer_complete():
         if run.get_status("sequencing_finished"):
             logger.info(
@@ -43,10 +45,12 @@ def process_run(run_dir, sequencer, config):
         logger.info(f"Sequencing is complete for {run_dir}. Starting final transfer.")
         run.do_final_transfer()
         return
+    ## Case 4: Final transfer completed successfully. Update statusdb.
     if run.final_sync_successful():
         logger.info(f"Final transfer completed successfully for {run_dir}.")
         run.update_statusdb(status="final_transfer_completed")
         return
+    ## Case 5: Final transfer attempted but failed. Log error and raise exception.
     else:
         logger.error(f"Final transfer failed for {run_dir}. Please check rsync logs.")
         raise RuntimeError(

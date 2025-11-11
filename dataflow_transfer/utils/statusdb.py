@@ -30,7 +30,9 @@ class StatusdbSession:
     def get_db_doc(self, ddoc, view, run_id):
         doc_id = self.get_doc_id(ddoc, view, run_id)
         if doc_id:
-            return self.connection.get_document(db=self.db_name, doc_id=doc_id).get_result()
+            return self.connection.get_document(
+                db=self.db_name, doc_id=doc_id
+            ).get_result()
         return None
 
     def get_doc_id(self, ddoc, view, run_id):
@@ -54,4 +56,17 @@ class StatusdbSession:
         ).get_result()
 
     def update_db_doc(self, db_doc):
-        pass  # TODO: implement, look at TACA
+        # Upload document to the database. Retry upload 3 times before failing.
+        for attempt in range(3):
+            try:
+                self.connection.post_document(
+                    db=self.db_name, document=db_doc
+                ).get_result()
+                return
+            except Exception as e:
+                logger.error(
+                    f"Attempt {attempt + 1} to update document {db_doc.get('runfolder_id', 'unknown')} failed with error: {e}"
+                )
+        raise Exception(
+            f"Failed to update document {db_doc.get('runfolder_id', 'unknown')} after 3 attempts."
+        )

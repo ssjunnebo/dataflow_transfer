@@ -183,6 +183,4 @@ class Run:
                 "data": additional_info or {},
             }
         )
-        self.db.update_db_doc(
-            db_doc
-        )  # TODO: how to handle if this update fails? The entry in statusdb would be incomplete
+        self.db.update_db_doc(db_doc)

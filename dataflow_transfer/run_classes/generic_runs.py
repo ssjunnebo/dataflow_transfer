@@ -182,11 +182,20 @@ class Run:
             db_doc["files"] = {}
         parsed_files = parse_metadata_files(files_to_include)
         db_doc["files"].update(parsed_files)
-        db_doc["events"].append(
-            {
-                "status": status,
-                "timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "data": additional_info or {},
-            }
-        )
+        statuses_to_only_update_once = [
+            "sequencing_started",
+            "sequencing_finished",
+        ]  # sequencing_started and sequencing_finished should only be updated once
+        if status in statuses_to_only_update_once:
+            for event in db_doc["events"]:
+                if event["status"] == status:
+                    continue  # Skip adding this status again
+        else:
+            db_doc["events"].append(
+                {
+                    "status": status,
+                    "timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "data": additional_info or {},
+                }
+            )
         self.db.update_db_doc(db_doc)

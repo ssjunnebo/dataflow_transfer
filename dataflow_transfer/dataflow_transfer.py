@@ -37,7 +37,11 @@ def process_run(run_dir, sequencer, config):
                 f"Run {run_dir} is already marked as sequenced, but transfer not complete. Will attempt final transfer again."
             )
         run.update_statusdb(status="sequencing_finished")
-        run.sync_metadata()  # This potentially takes a really long time. Consider what effects that would have.
+        if run.metadata_synced():
+            logger.info(f"Metadata already synced for {run_dir}.")
+            run.update_statusdb(status="metadata_synced")
+        else:
+            run.sync_metadata()
         logger.info(f"Sequencing is complete for {run_dir}. Starting final transfer.")
         run.do_final_transfer()
         return

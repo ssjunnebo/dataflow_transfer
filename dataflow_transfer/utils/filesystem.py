@@ -25,3 +25,13 @@ def parse_metadata_files(files):
         except Exception as e:
             logger.error(f"Error reading metadata file {file_path}: {e}")
     return metadata
+
+
+def check_exit_status(file_path):
+    """Check the exit status from a given file. Return True if exit code is 0, else False."""
+    if os.path.exists(file_path):
+        with open(file_path, "r") as f:
+            exit_code = f.read().strip()
+            if exit_code == "0":
+                return True
+    return False

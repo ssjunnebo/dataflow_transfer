@@ -5,7 +5,7 @@ from datetime import datetime
 
 from dataflow_transfer.utils.transfer import rsync_is_running, sync_to_hpc
 from dataflow_transfer.utils.statusdb import StatusdbSession
-from dataflow_transfer.utils.filesystem import parse_metadata_files
+from dataflow_transfer.utils.filesystem import parse_metadata_files, check_exit_status
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +21,9 @@ class Run:
         self.rsync_log = os.path.join(self.run_dir, "rsync.log")
         self.final_rsync_exitcode_file = os.path.join(
             self.run_dir, "final_rsync_exitcode"
+        )
+        self.metadata_sync_exitcode_file = os.path.join(
+            self.run_dir, "metadata_sync_exitcode"
         )
         self.miarka_destination = self.configuration.get("miarka_destination").get(
             getattr(self, "run_type", None)
@@ -121,15 +124,17 @@ class Run:
 
     def final_sync_successful(self):
         """Check if the final rsync transfer was successful by reading the exit code file."""
-        if os.path.exists(self.final_rsync_exitcode_file):
-            with open(self.final_rsync_exitcode_file, "r") as f:
-                exit_code = f.read().strip()
-                if exit_code == "0":
-                    return True
-        return False
+        return check_exit_status(self.final_rsync_exitcode_file)
+
+    def metadata_synced(self):
+        """Check if metadata has been synced by looking for an indicator file."""
+        return check_exit_status(self.metadata_sync_exitcode_file)
 
     def sync_metadata(self):
-        # TODO: implement actual metadata sync logic. Look at TACA
+        # TODO: implement actual metadata sync logic
+        # make sure this is only run once, when the sequencing is finished.
+        # instead of a copy, do a background rsync with an indicator file
+        # Look for the indicator file and exit code. If the exit code is 0, update statusdb. Otherwise retry.
         pass
 
     def transfer_complete(self):
@@ -147,7 +152,7 @@ class Run:
         else:
             return False
 
-    def locate_metadata_files(self):
+    def locate_metadata(self):
         """Locate metadata files in the run directory based on configuration."""
         files_to_locate = self.configuration.get("metadata_files").get(
             getattr(self, "run_type", None)
@@ -165,37 +170,40 @@ class Run:
         db_doc = self.db.get_db_doc(
             ddoc="lookup", view="runfolder_id", run_id=self.run_id
         )
+
+        statuses_to_only_update_once = [  # some statuses should only be updated once
+            "sequencing_started",
+            "sequencing_finished",
+            "metadata_synced",
+        ]
+        if status in statuses_to_only_update_once:
+            for event in db_doc.get("events", []):
+                if event["status"] == status:
+                    return
+
         if not db_doc:
             db_doc = {
                 "runfolder_id": self.run_id,
                 "flowcell_id": self.flowcell_id,
                 "events": [],
             }
-        files_to_include = self.locate_metadata_files()
+
+        files_to_include = self.locate_metadata()
         if db_doc.get("files", {}):
-            for file in files_to_include:
-                if os.path.basename(file) in db_doc["files"]:
-                    files_to_include.remove(file)
+            for f in files_to_include:
+                if os.path.basename(f) in db_doc["files"]:
+                    files_to_include.remove(f)
                     # TODO: This excludes files that are already uploaded, but could there be incomplete documents that should be updated? Is it better to always re-parse and update?
         else:
             # Initialize files dict if not present. This happens if the sample sheet daemon created the initial document without files.
             db_doc["files"] = {}
         parsed_files = parse_metadata_files(files_to_include)
         db_doc["files"].update(parsed_files)
-        statuses_to_only_update_once = [
-            "sequencing_started",
-            "sequencing_finished",
-        ]  # sequencing_started and sequencing_finished should only be updated once
-        if status in statuses_to_only_update_once:
-            for event in db_doc["events"]:
-                if event["status"] == status:
-                    continue  # Skip adding this status again
-        else:
-            db_doc["events"].append(
-                {
-                    "status": status,
-                    "timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
-                    "data": additional_info or {},
-                }
-            )
+        db_doc["events"].append(
+            {
+                "status": status,
+                "timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "data": additional_info or {},
+            }
+        )
         self.db.update_db_doc(db_doc)

@@ -5,7 +5,11 @@ from datetime import datetime
 
 from dataflow_transfer.utils.transfer import rsync_is_running, sync_to_hpc
 from dataflow_transfer.utils.statusdb import StatusdbSession
-from dataflow_transfer.utils.filesystem import parse_metadata_files, check_exit_status
+from dataflow_transfer.utils.filesystem import (
+    parse_metadata_files,
+    check_exit_status,
+    locate_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +21,9 @@ class Run:
         self.run_dir = run_dir
         self.run_id = os.path.basename(run_dir)
         self.configuration = configuration
+        self.sequencer_config = self.configuration.get(getattr(self, "run_type", None))
         self.final_file = ""
+        self.transfer_details = self.configuration.get("transfer_details", {})
         self.rsync_log = os.path.join(self.run_dir, "rsync.log")
         self.final_rsync_exitcode_file = os.path.join(
             self.run_dir, "final_rsync_exitcode"
@@ -25,9 +31,8 @@ class Run:
         self.metadata_sync_exitcode_file = os.path.join(
             self.run_dir, "metadata_sync_exitcode"
         )
-        self.miarka_destination = self.configuration.get("miarka_destination").get(
-            getattr(self, "run_type", None)
-        )
+        self.nasns_destination = self.sequencer_config.get("nasns_destination")
+        self.miarka_destination = self.sequencer_config.get("miarka_destination")
         self.db = StatusdbSession(self.configuration.get("statusdb"))
 
     def confirm_run_type(self):
@@ -45,26 +50,31 @@ class Run:
         else:
             return True
 
-    def generate_transfer_command(self, is_final_sync=False):
+    def generate_rsync_command(self, is_final_sync=False, remote=False):
         """Generate the rsync command string for transferring the run to storage."""
-        transfer_details = self.configuration.get("transfer_details", {})
-        remote_destination = (
-            transfer_details.get("user")
-            + "@"
-            + transfer_details.get("host")
-            + ":"
-            + self.miarka_destination
-        )
-
+        if remote:
+            destination = (
+                self.transfer_details.get("user")
+                + "@"
+                + self.transfer_details.get("host")
+                + ":"
+                + self.miarka_destination
+            )
+        else:
+            destination = self.nasns_destination
         command = [
             "run-one",
             "rsync",
             "-au",
-            "--log-file=" + self.rsync_log,
-            "--chown=" + transfer_details.get("owner"),
-            "--chmod=" + transfer_details.get("permissions"),
-            self.run_dir,
-            remote_destination,
+            "--log-file="
+            + self.rsync_log,  # TODO: set different log files for rsync to nas-ns and miarka
+            "--chown="
+            + self.transfer_details.get(
+                "owner"
+            ),  # TODO: only set these options for remote transfers
+            "--chmod=" + self.transfer_details.get("permissions"),
+            self.run_dir,  # TODO: set specific files for metadata syncs
+            destination,
         ]
 
         if is_final_sync:
@@ -79,8 +89,8 @@ class Run:
     def initiate_background_transfer(self):
         """Start background rsync transfer to storage."""
         logger.info(f"Initiating background transfer for {self.run_dir}")
-        background_transfer_command = self.generate_transfer_command(
-            is_final_sync=False
+        background_transfer_command = self.generate_rsync_command(
+            is_final_sync=False, remote=True
         )
         if rsync_is_running(src=self.run_dir):
             logger.info(
@@ -102,7 +112,9 @@ class Run:
         """Start final rsync transfer to storage."""
         logger.info(f"Initiating final transfer for {self.run_dir}")
 
-        final_transfer_command = self.generate_transfer_command(is_final_sync=True)
+        final_transfer_command = self.generate_rsync_command(
+            is_final_sync=True, remote=True
+        )
         if rsync_is_running(src=self.run_dir):
             logger.info(
                 f"Rsync is already running for {self.run_dir}. Skipping final transfer initiation."
@@ -132,10 +144,12 @@ class Run:
 
     def sync_metadata(self):
         # TODO: implement actual metadata sync logic
-        # make sure this is only run once, when the sequencing is finished.
         # instead of a copy, do a background rsync with an indicator file
         # Look for the indicator file and exit code. If the exit code is 0, update statusdb. Otherwise retry.
-        pass
+        metadata_to_sync = locate_metadata(
+            self.sequencer_config.get("metadata_for_nasns")
+        )
+        self.update_statusdb(status="metadata_sync_started")
 
     def transfer_complete(self):
         """Check if the final rsync exit code file exists, indicating transfer completion."""
@@ -151,18 +165,6 @@ class Run:
             return True
         else:
             return False
-
-    def locate_metadata(self):
-        """Locate metadata files in the run directory based on configuration."""
-        files_to_locate = self.configuration.get("metadata_files").get(
-            getattr(self, "run_type", None)
-        )
-        located_files = []
-        for file_pattern in files_to_locate:
-            file_path = os.path.join(self.run_dir, file_pattern)
-            if os.path.exists(file_path):
-                located_files.append(file_path)
-        return located_files
 
     def update_statusdb(self, status, additional_info=None):
         """Update the statusdb document for this run with the given status and associated metadata files."""
@@ -188,7 +190,9 @@ class Run:
                 "events": [],
             }
 
-        files_to_include = self.locate_metadata()
+        files_to_include = locate_metadata(
+            self.sequencer_config.get("metadata_for_statusdb", [])
+        )
         if db_doc.get("files", {}):
             for f in files_to_include:
                 if os.path.basename(f) in db_doc["files"]:

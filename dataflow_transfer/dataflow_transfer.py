@@ -74,10 +74,10 @@ def transfer_runs(conf, run=None, sequencer=None):
         process_run(run_dir, sequencer, conf)
     else:
         logger.info("Transferring all runs as per configuration")
-        sequencing_dirs = conf.get("sequencing_dirs", {})
-        for sequencer in sequencing_dirs.keys():
+        sequencers = conf.get("sequencers", {})
+        for sequencer in sequencers.keys():
             logger.info(f"Processing data from: {sequencer}")
-            sequencing_dir = sequencing_dirs.get(sequencer)
+            sequencing_dir = sequencer.get("sequencing_path")
             for run_dir in os.listdir(sequencing_dir):
                 run_dir_path = os.path.join(sequencing_dir, run_dir)
                 if os.path.isdir(run_dir_path):

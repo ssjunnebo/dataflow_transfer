@@ -35,3 +35,12 @@ def check_exit_status(file_path):
             if exit_code == "0":
                 return True
     return False
+
+def locate_metadata(metadata_list, run_dir):
+        """Locate metadata in the given run directory."""
+        located_paths = []
+        for pattern in metadata_list:
+            metadata_path = os.path.join(run_dir, pattern)
+            if os.path.exists(metadata_path):
+                located_paths.append(metadata_path)
+        return located_paths

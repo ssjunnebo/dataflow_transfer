@@ -3,7 +3,11 @@ import logging
 import re
 from datetime import datetime
 
-from dataflow_transfer.utils.transfer import rsync_is_running, sync_to_hpc
+from dataflow_transfer.utils.transfer import (
+    rsync_is_running,
+    transfer,
+    make_rsync_include_options,
+)
 from dataflow_transfer.utils.statusdb import StatusdbSession
 from dataflow_transfer.utils.filesystem import (
     parse_metadata_files,
@@ -24,7 +28,6 @@ class Run:
         self.sequencer_config = self.configuration.get(getattr(self, "run_type", None))
         self.final_file = ""
         self.transfer_details = self.configuration.get("transfer_details", {})
-        self.rsync_log = os.path.join(self.run_dir, "rsync.log")
         self.final_rsync_exitcode_file = os.path.join(
             self.run_dir, "final_rsync_exitcode"
         )
@@ -50,9 +53,14 @@ class Run:
         else:
             return True
 
-    def generate_rsync_command(self, is_final_sync=False, remote=False):
-        """Generate the rsync command string for transferring the run to storage."""
+    def generate_rsync_command(self, exit_code_file=None, remote=False):
+        """Generate an rsync command string."""
         if remote:
+            log_file = os.path.join(self.run_dir, "rsync_remote_log.txt")
+            additional_options = [
+                "--chown=" + self.transfer_details.get("owner"),
+                "--chmod=" + self.transfer_details.get("permissions"),
+            ]
             destination = (
                 self.transfer_details.get("user")
                 + "@"
@@ -61,26 +69,28 @@ class Run:
                 + self.miarka_destination
             )
         else:
+            log_file = os.path.join(self.run_dir, "rsync_nasns_log.txt")
+            include_patterns = self.sequencer_config.get("metadata_for_nasns", [])
+            include = make_rsync_include_options(include_patterns, self.run_dir)
+            additional_options = [include, "--exclude='*'"]  # exclude everything else
             destination = self.nasns_destination
+
         command = [
             "run-one",
             "rsync",
             "-au",
-            "--log-file="
-            + self.rsync_log,  # TODO: set different log files for rsync to nas-ns and miarka
-            "--chown="
-            + self.transfer_details.get(
-                "owner"
-            ),  # TODO: only set these options for remote transfers
-            "--chmod=" + self.transfer_details.get("permissions"),
-            self.run_dir,  # TODO: set specific files for metadata syncs
+            "--log-file=" + log_file,
+        ]
+        command.extend(additional_options)
+        command.extend[
+            self.run_dir,
             destination,
         ]
 
-        if is_final_sync:
+        if exit_code_file:
             command.extend(
                 [
-                    f"; echo $? > {self.final_rsync_exitcode_file}",
+                    f"; echo $? > {exit_code_file}",
                 ]
             )
         command_str = " ".join(command)
@@ -90,16 +100,16 @@ class Run:
         """Start background rsync transfer to storage."""
         logger.info(f"Initiating background transfer for {self.run_dir}")
         background_transfer_command = self.generate_rsync_command(
-            is_final_sync=False, remote=True
+            exit_code_file=self.final_rsync_exitcode_file, remote=True
         )
         if rsync_is_running(src=self.run_dir):
             logger.info(
                 f"Rsync is already running for {self.run_dir}. Skipping background transfer initiation."
             )
             return
-        sync_to_hpc(background_transfer_command)
+        transfer(background_transfer_command)
         logger.info(
-            f"{os.path.basename(self.run_dir)}: Started background rsync to {self.miarka_destination}"
+            f"{self.run_id}: Started background rsync to {self.miarka_destination}"
             + f" with the following command: '{background_transfer_command}'"
         )
         rsync_info = {
@@ -112,18 +122,16 @@ class Run:
         """Start final rsync transfer to storage."""
         logger.info(f"Initiating final transfer for {self.run_dir}")
 
-        final_transfer_command = self.generate_rsync_command(
-            is_final_sync=True, remote=True
-        )
+        final_transfer_command = self.generate_rsync_command(remote=True)
         if rsync_is_running(src=self.run_dir):
             logger.info(
                 f"Rsync is already running for {self.run_dir}. Skipping final transfer initiation."
             )
             return
 
-        sync_to_hpc(final_transfer_command)
+        transfer(final_transfer_command)
         logger.info(
-            f"{os.path.basename(self.run_dir)}: Started FINAL rsync to {self.miarka_destination}"
+            f"{self.run_id}: Started FINAL rsync to {self.miarka_destination}"
             + f" with the following command: '{final_transfer_command}'"
         )
         rsync_info = {
@@ -143,13 +151,28 @@ class Run:
         return check_exit_status(self.metadata_sync_exitcode_file)
 
     def sync_metadata(self):
-        # TODO: implement actual metadata sync logic
-        # instead of a copy, do a background rsync with an indicator file
         # Look for the indicator file and exit code. If the exit code is 0, update statusdb. Otherwise retry.
-        metadata_to_sync = locate_metadata(
-            self.sequencer_config.get("metadata_for_nasns")
+        logger.info(
+            f"Initiating background transfer of metadata to ngi-nas-ns for {self.run_dir}"
         )
-        self.update_statusdb(status="metadata_sync_started")
+        metadata_rsync_command = self.generate_rsync_command(
+            exit_code_file=self.metadata_sync_exitcode_file, remote=False
+        )
+        if rsync_is_running(src=self.run_dir):  # TODO: check destination as well
+            logger.info(
+                f"rsync to ngi-nas-ns is already running for {self.run_dir}. Skipping background transfer initiation."
+            )
+            return
+        transfer(metadata_rsync_command)
+        logger.info(
+            f"{self.run_id}: Started background rsync to {self.nasns_destination}"
+            + f" with the following command: '{metadata_rsync_command}'"
+        )
+        rsync_info = {
+            "command": metadata_rsync_command,
+            "destination_path": self.nasns_destination,
+        }
+        self.update_statusdb(status="metadata_sync_started", additional_info=rsync_info)
 
     def transfer_complete(self):
         """Check if the final rsync exit code file exists, indicating transfer completion."""

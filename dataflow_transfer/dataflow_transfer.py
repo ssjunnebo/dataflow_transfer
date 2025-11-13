@@ -18,11 +18,17 @@ def get_run_object(run_dir, sequencer, config):
 def process_run(run_dir, sequencer, config):
     run = get_run_object(run_dir, sequencer, config)
     run.confirm_run_type()
-    ## Case 1: Transfer already completed. Do nothing. Removing the final transfer indicator lets the run retry transfer the next iteration.
-    if run.get_status("transferred_to_hpc") and run.final_sync_successful():
-        logger.info(f"Transfer already completed for {run_dir}. No action needed.")
+
+    ## Transfer and metadata sync already completed. Do nothing.
+    if (
+        run.get_status("transferred_to_hpc")
+        and run.final_sync_successful()  # Removing the exit code file lets the run retry transfer
+        and run.metadata_synced()  # Removing the exit code file lets the run retry metadata sync
+    ):
+        logger.info(f"Processing of {run_dir} is finished. No action needed.")
         return
-    ## Case 2: Sequencing ongoing. Start background transfer if not already running.
+
+    ## Sequencing ongoing. Start background transfer if not already running.
     if run.sequencing_ongoing():
         run.update_statusdb(status="sequencing_started")
         logger.info(
@@ -30,27 +36,34 @@ def process_run(run_dir, sequencer, config):
         )
         run.initiate_background_transfer()
         return
-    ## Case 3: Sequencing finished but transfer not complete. Sync metadata to ngi-nas-ns and start final transfer.
+
+    ## Sync metadata if not already synced.
+    if run.metadata_synced():
+        logger.info(f"Metadata synced for {run_dir}.")
+        run.update_statusdb(status="metadata_synced")
+    else:
+        logger.info(
+            f"Run {run_dir} is marked as sequenced but metadata not synced. Will attempt metadata sync."
+        )
+        run.sync_metadata()  # metadata sync is a backgroung rsync
+
+    ## Sequencing finished but transfer not complete. Start final transfer.
     if not run.transfer_complete():
         if run.get_status("sequencing_finished"):
             logger.info(
                 f"Run {run_dir} is already marked as sequenced, but transfer not complete. Will attempt final transfer again."
             )
         run.update_statusdb(status="sequencing_finished")
-        if run.metadata_synced():
-            logger.info(f"Metadata already synced for {run_dir}.")
-            run.update_statusdb(status="metadata_synced")
-        else:
-            run.sync_metadata()
         logger.info(f"Sequencing is complete for {run_dir}. Starting final transfer.")
         run.do_final_transfer()
         return
-    ## Case 4: Final transfer completed successfully. Update statusdb.
+
+    ## Final transfer completed successfully. Update statusdb.
     if run.final_sync_successful():
         logger.info(f"Final transfer completed successfully for {run_dir}.")
-        run.update_statusdb(status="final_transfer_completed")
+        run.update_statusdb(status="transferred_to_hpc")
         return
-    ## Case 5: Final transfer attempted but failed. Log error and raise exception.
+    ## Final transfer attempted but failed. Log error and raise exception.
     else:
         logger.error(f"Final transfer failed for {run_dir}. Please check rsync logs.")
         raise RuntimeError(

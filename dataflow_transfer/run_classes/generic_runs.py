@@ -3,11 +3,7 @@ import logging
 import re
 from datetime import datetime
 
-from dataflow_transfer.utils.transfer import (
-    rsync_is_running,
-    transfer,
-    make_rsync_include_options,
-)
+from dataflow_transfer.utils.transfer import rsync_is_running, transfer
 from dataflow_transfer.utils.statusdb import StatusdbSession
 from dataflow_transfer.utils.filesystem import (
     parse_metadata_files,
@@ -31,10 +27,6 @@ class Run:
         self.final_rsync_exitcode_file = os.path.join(
             self.run_dir, "final_rsync_exitcode"
         )
-        self.metadata_sync_exitcode_file = os.path.join(
-            self.run_dir, "metadata_sync_exitcode"
-        )
-        self.nasns_destination = self.sequencer_config.get("nasns_destination")
         self.miarka_destination = self.sequencer_config.get("miarka_destination")
         self.db = StatusdbSession(self.configuration.get("statusdb"))
 
@@ -53,44 +45,31 @@ class Run:
         else:
             return True
 
-    def generate_rsync_command(self, exit_code_file=None, remote=False):
+    def generate_rsync_command(self, is_final_sync=False):
         """Generate an rsync command string."""
-        if remote:
-            log_file = os.path.join(self.run_dir, "rsync_remote_log.txt")
-            additional_options = [
-                "--chown=" + self.transfer_details.get("owner"),
-                "--chmod=" + self.transfer_details.get("permissions"),
-            ]
-            destination = (
-                self.transfer_details.get("user")
-                + "@"
-                + self.transfer_details.get("host")
-                + ":"
-                + self.miarka_destination
-            )
-        else:
-            log_file = os.path.join(self.run_dir, "rsync_nasns_log.txt")
-            include_patterns = self.sequencer_config.get("metadata_for_nasns", [])
-            include = make_rsync_include_options(include_patterns, self.run_dir)
-            additional_options = [include, "--exclude='*'"]  # exclude everything else
-            destination = self.nasns_destination
+        destination = (
+            self.transfer_details.get("user")
+            + "@"
+            + self.transfer_details.get("host")
+            + ":"
+            + self.miarka_destination
+        )
 
         command = [
             "run-one",
             "rsync",
             "-au",
-            "--log-file=" + log_file,
-        ]
-        command.extend(additional_options)
-        command.extend[
+            "--log-file=" + os.path.join(self.run_dir, "rsync_remote_log.txt"),
+            "--chown=" + self.transfer_details.get("owner"),
+            "--chmod=" + self.transfer_details.get("permissions"),
             self.run_dir,
             destination,
         ]
 
-        if exit_code_file:
+        if is_final_sync:
             command.extend(
                 [
-                    f"; echo $? > {exit_code_file}",
+                    f"; echo $? > {self.final_rsync_exitcode_file}",
                 ]
             )
         command_str = " ".join(command)
@@ -99,9 +78,7 @@ class Run:
     def initiate_background_transfer(self):
         """Start background rsync transfer to storage."""
         logger.info(f"Initiating background transfer for {self.run_dir}")
-        background_transfer_command = self.generate_rsync_command(
-            exit_code_file=self.final_rsync_exitcode_file, remote=True
-        )
+        background_transfer_command = self.generate_rsync_command(is_final_sync=False)
         if rsync_is_running(src=self.run_dir):
             logger.info(
                 f"Rsync is already running for {self.run_dir}. Skipping background transfer initiation."
@@ -122,7 +99,7 @@ class Run:
         """Start final rsync transfer to storage."""
         logger.info(f"Initiating final transfer for {self.run_dir}")
 
-        final_transfer_command = self.generate_rsync_command(remote=True)
+        final_transfer_command = self.generate_rsync_command(is_final_sync=True)
         if rsync_is_running(src=self.run_dir):
             logger.info(
                 f"Rsync is already running for {self.run_dir}. Skipping final transfer initiation."
@@ -145,34 +122,6 @@ class Run:
     def final_sync_successful(self):
         """Check if the final rsync transfer was successful by reading the exit code file."""
         return check_exit_status(self.final_rsync_exitcode_file)
-
-    def metadata_synced(self):
-        """Check if metadata has been synced by looking for an indicator file."""
-        return check_exit_status(self.metadata_sync_exitcode_file)
-
-    def sync_metadata(self):
-        # Look for the indicator file and exit code. If the exit code is 0, update statusdb. Otherwise retry.
-        logger.info(
-            f"Initiating background transfer of metadata to ngi-nas-ns for {self.run_dir}"
-        )
-        metadata_rsync_command = self.generate_rsync_command(
-            exit_code_file=self.metadata_sync_exitcode_file, remote=False
-        )
-        if rsync_is_running(src=self.run_dir):  # TODO: check destination as well
-            logger.info(
-                f"rsync to ngi-nas-ns is already running for {self.run_dir}. Skipping background transfer initiation."
-            )
-            return
-        transfer(metadata_rsync_command)
-        logger.info(
-            f"{self.run_id}: Started background rsync to {self.nasns_destination}"
-            + f" with the following command: '{metadata_rsync_command}'"
-        )
-        rsync_info = {
-            "command": metadata_rsync_command,
-            "destination_path": self.nasns_destination,
-        }
-        self.update_statusdb(status="metadata_sync_started", additional_info=rsync_info)
 
     def transfer_complete(self):
         """Check if the final rsync exit code file exists, indicating transfer completion."""
@@ -199,7 +148,6 @@ class Run:
         statuses_to_only_update_once = [  # some statuses should only be updated once
             "sequencing_started",
             "sequencing_finished",
-            "metadata_synced",
         ]
         if status in statuses_to_only_update_once:
             for event in db_doc.get("events", []):

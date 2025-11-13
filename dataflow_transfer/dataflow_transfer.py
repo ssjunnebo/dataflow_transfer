@@ -19,13 +19,12 @@ def process_run(run_dir, sequencer, config):
     run = get_run_object(run_dir, sequencer, config)
     run.confirm_run_type()
 
-    ## Transfer and metadata sync already completed. Do nothing.
+    ## Transfer already completed. Do nothing.
     if (
         run.get_status("transferred_to_hpc")
         and run.final_sync_successful()  # Removing the exit code file lets the run retry transfer
-        and run.metadata_synced()  # Removing the exit code file lets the run retry metadata sync
     ):
-        logger.info(f"Processing of {run_dir} is finished. No action needed.")
+        logger.info(f"Transfer of {run_dir} is finished. No action needed.")
         return
 
     ## Sequencing ongoing. Start background transfer if not already running.
@@ -37,18 +36,8 @@ def process_run(run_dir, sequencer, config):
         run.initiate_background_transfer()
         return
 
-    ## Sync metadata if not already synced.
-    if run.metadata_synced():
-        logger.info(f"Metadata synced for {run_dir}.")
-        run.update_statusdb(status="metadata_synced")
-    else:
-        logger.info(
-            f"Run {run_dir} is marked as sequenced but metadata not synced. Will attempt metadata sync."
-        )
-        run.sync_metadata()  # metadata sync is a backgroung rsync
-
     ## Sequencing finished but transfer not complete. Start final transfer.
-    if not run.transfer_complete():
+    if not run.transfer_complete():  # Only checks if the file exists, not if it was successful. That is handled below.
         if run.get_status("sequencing_finished"):
             logger.info(
                 f"Run {run_dir} is already marked as sequenced, but transfer not complete. Will attempt final transfer again."

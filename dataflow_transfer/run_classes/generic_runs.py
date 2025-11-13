@@ -159,19 +159,18 @@ class Run:
                 "runfolder_id": self.run_id,
                 "flowcell_id": self.flowcell_id,
                 "events": [],
+                "files": {},
             }
 
         files_to_include = locate_metadata(
             self.sequencer_config.get("metadata_for_statusdb", [])
         )
-        if db_doc.get("files", {}):
-            for f in files_to_include:
-                if os.path.basename(f) in db_doc["files"]:
-                    files_to_include.remove(f)
-                    # TODO: This excludes files that are already uploaded, but could there be incomplete documents that should be updated? Is it better to always re-parse and update?
-        else:
-            # Initialize files dict if not present. This happens if the sample sheet daemon created the initial document without files.
-            db_doc["files"] = {}
+        for f in files_to_include:
+            if os.path.basename(f) in db_doc["files"]:
+                files_to_include.remove(f)
+                # TODO: This excludes files that are already uploaded, but could there be incomplete documents that should be updated?
+                # Is it better to always re-parse and update?
+
         parsed_files = parse_metadata_files(files_to_include)
         db_doc["files"].update(parsed_files)
         db_doc["events"].append(

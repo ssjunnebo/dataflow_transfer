@@ -130,7 +130,7 @@ class Run:
         """Check if the final rsync exit code file exists, indicating transfer completion."""
         return os.path.exists(self.final_rsync_exitcode_file)
 
-    def get_status(self, status_name):
+    def has_status(self, status_name):
         """Check if a specific status exists in the statusdb events for this run."""
         events = self.db.get_events(self.run_id)["rows"]
         current_statuses = {}

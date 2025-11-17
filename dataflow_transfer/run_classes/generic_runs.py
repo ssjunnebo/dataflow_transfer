@@ -37,6 +37,7 @@ class Run:
                 f"Run ID {self.run_id} does not match expected format for {getattr(self, 'run_type', 'Unknown')} runs."
             )
 
+    @property
     def sequencing_ongoing(self):
         """Check if sequencing is still ongoing by looking for the absence of the final file."""
         final_file_path = os.path.join(self.run_dir, self.final_file)
@@ -119,10 +120,12 @@ class Run:
             status="final_transfer_started", additional_info=rsync_info
         )
 
+    @property
     def final_sync_successful(self):
         """Check if the final rsync transfer was successful by reading the exit code file."""
         return check_exit_status(self.final_rsync_exitcode_file)
 
+    @property
     def transfer_complete(self):
         """Check if the final rsync exit code file exists, indicating transfer completion."""
         return os.path.exists(self.final_rsync_exitcode_file)

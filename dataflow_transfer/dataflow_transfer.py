@@ -21,14 +21,13 @@ def process_run(run_dir, sequencer, config):
 
     ## Transfer already completed. Do nothing.
     if (
-        run.get_status("transferred_to_hpc")
-        and run.final_sync_successful()  # Removing the exit code file lets the run retry transfer
-    ):
+        run.final_sync_successful
+    ):  # Removing the exit code file lets the run retry transfer
         logger.info(f"Transfer of {run_dir} is finished. No action needed.")
         return
 
     ## Sequencing ongoing. Start background transfer if not already running.
-    if run.sequencing_ongoing():
+    if run.sequencing_ongoing:
         run.update_statusdb(status="sequencing_started")
         logger.info(
             f"Sequencing is ongoing for {run_dir}. Starting background transfer."
@@ -37,7 +36,7 @@ def process_run(run_dir, sequencer, config):
         return
 
     ## Sequencing finished but transfer not complete. Start final transfer.
-    if not run.transfer_complete():  # Only checks if the file exists, not if it was successful. That is handled below.
+    if not run.transfer_complete:  # Only checks if the file exists, not if it was successful. That is handled below.
         if run.get_status("sequencing_finished"):
             logger.info(
                 f"Run {run_dir} is already marked as sequenced, but transfer not complete. Will attempt final transfer again."
@@ -48,7 +47,7 @@ def process_run(run_dir, sequencer, config):
         return
 
     ## Final transfer completed successfully. Update statusdb.
-    if run.final_sync_successful():
+    if run.final_sync_successful:
         logger.info(f"Final transfer completed successfully for {run_dir}.")
         run.update_statusdb(status="transferred_to_hpc")
         return

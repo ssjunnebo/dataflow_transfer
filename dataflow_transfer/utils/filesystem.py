@@ -21,7 +21,30 @@ def parse_metadata_files(files):
                     )
                     metadata[os.path.basename(file_path)] = xml_content
             else:
-                continue  # TODO: Warn about unsupported file type
+                logger.warning(
+                    f"Unsupported metadata file type for {file_path}. Only .json and .xml are supported."
+                )
+                continue
         except Exception as e:
             logger.error(f"Error reading metadata file {file_path}: {e}")
     return metadata
+
+
+def check_exit_status(file_path):
+    """Check the exit status from a given file. Return True if exit code is 0, else False."""
+    if os.path.exists(file_path):
+        with open(file_path, "r") as f:
+            exit_code = f.read().strip()
+            if exit_code == "0":
+                return True
+    return False
+
+
+def locate_metadata(metadata_list, run_dir):
+    """Locate metadata in the given run directory."""
+    located_paths = []
+    for pattern in metadata_list:
+        metadata_path = os.path.join(run_dir, pattern)
+        if os.path.exists(metadata_path):
+            located_paths.append(metadata_path)
+    return located_paths

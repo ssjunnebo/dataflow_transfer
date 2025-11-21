@@ -14,7 +14,7 @@ def rsync_is_running(src):
         return False
 
 
-def sync_to_hpc(command_str: str):
+def transfer(command_str: str):
     """Sync the run to storage using rsync."""
 
     background_process = subprocess.Popen(

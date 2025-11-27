@@ -167,7 +167,8 @@ class Run:
             }
 
         files_to_include = locate_metadata(
-            self.sequencer_config.get("metadata_for_statusdb", [])
+            self.sequencer_config.get("metadata_for_statusdb", []),
+            self.run_dir,
         )
         for f in files_to_include:
             if os.path.basename(f) in db_doc["files"]:

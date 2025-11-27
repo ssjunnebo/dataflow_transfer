@@ -77,7 +77,7 @@ def transfer_runs(conf, run=None, sequencer=None):
         sequencers = conf.get("sequencers", {})
         for sequencer in sequencers.keys():
             logger.info(f"Processing data from: {sequencer}")
-            sequencing_dir = sequencer.get("sequencing_path")
+            sequencing_dir = sequencers.get(sequencer).get("sequencing_path")
             for run_dir in os.listdir(sequencing_dir):
                 run_dir_path = os.path.join(sequencing_dir, run_dir)
                 if os.path.isdir(run_dir_path):

@@ -20,9 +20,8 @@ def process_run(run_dir, sequencer, config):
     run.confirm_run_type()
 
     ## Transfer already completed. Do nothing.
-    if (
-        run.final_sync_successful
-    ):  # Removing the exit code file lets the run retry transfer
+    if run.final_sync_successful:
+        # Removing the exit code file lets the run retry transfer
         logger.info(f"Transfer of {run_dir} is finished. No action needed.")
         return
 
@@ -39,7 +38,8 @@ def process_run(run_dir, sequencer, config):
     if not run.transfer_complete:  # Only checks if the file exists, not if it was successful. That is handled below.
         if run.has_status("sequencing_finished"):
             logger.info(
-                f"Run {run_dir} is already marked as sequenced, but transfer not complete. Will attempt final transfer again."
+                f"Run {run_dir} is already marked as sequenced, but transfer not complete. ",
+                "Will attempt final transfer again.",
             )
         run.update_statusdb(status="sequencing_finished")
         logger.info(f"Sequencing is complete for {run_dir}. Starting final transfer.")
@@ -54,9 +54,8 @@ def process_run(run_dir, sequencer, config):
     ## Final transfer attempted but failed. Log error and raise exception.
     else:
         logger.error(f"Final transfer failed for {run_dir}. Please check rsync logs.")
-        raise RuntimeError(
-            f"Final transfer failed for {run_dir}."
-        )  # TODO: we could retry? e.g log nr of retries in the DB and retry N times before sending aout an email warning?
+        raise RuntimeError(f"Final transfer failed for {run_dir}.")
+        # TODO: we could retry? e.g log nr of retries in the DB and retry N times before sending aout an email warning?
 
 
 def get_run_dir(run):

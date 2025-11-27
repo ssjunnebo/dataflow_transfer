@@ -21,7 +21,9 @@ class Run:
         self.run_dir = run_dir
         self.run_id = os.path.basename(run_dir)
         self.configuration = configuration
-        self.sequencer_config = self.configuration.get(getattr(self, "run_type", None))
+        self.sequencer_config = self.configuration.get("sequencers").get(
+            getattr(self, "run_type", None)
+        )
         self.final_file = ""
         self.transfer_details = self.configuration.get("transfer_details", {})
         self.final_rsync_exitcode_file = os.path.join(
@@ -143,7 +145,6 @@ class Run:
 
     def update_statusdb(self, status, additional_info=None):
         """Update the statusdb document for this run with the given status and associated metadata files."""
-        logger.info(f"Setting status {status} for {self.run_dir}")
         db_doc = self.db.get_db_doc(
             ddoc="lookup", view="runfolder_id", run_id=self.run_id
         )
@@ -183,4 +184,6 @@ class Run:
                 "data": additional_info or {},
             }
         )
+
+        logger.info(f"Setting status {status} for {self.run_dir}")
         self.db.update_db_doc(db_doc)

@@ -1,9 +1,8 @@
 import logging
-import os
 import time
 
 from dataflow_transfer.run_classes.registry import RUN_CLASS_REGISTRY
-from dataflow_transfer.utils.filesystem import find_runs
+from dataflow_transfer.utils.filesystem import get_run_dir, find_runs
 
 logger = logging.getLogger(__name__)
 
@@ -31,21 +30,17 @@ def process_run(run_dir, sequencer, config):
     ## Sequencing ongoing. Start background transfer if not already running.
     if run.sequencing_ongoing:
         run.update_statusdb(status="sequencing_started")
-        logger.info(
-            f"Sequencing is ongoing for {run_dir}. Starting background transfer."
-        )
         run.initiate_background_transfer()
         return
 
     ## Sequencing finished but transfer not complete. Start final transfer.
-    if not run.transfer_complete:  # Only checks if the file exists, not if it was successful. That is handled below.
+    if not run.final_sync_successful:
         if run.has_status("sequencing_finished"):
             logger.info(
                 f"Run {run_dir} is already marked as sequenced, but transfer not complete. "
                 "Will attempt final transfer again."
             )
         run.update_statusdb(status="sequencing_finished")
-        logger.info(f"Sequencing is complete for {run_dir}. Starting final transfer.")
         run.do_final_transfer()
         return
 
@@ -54,20 +49,11 @@ def process_run(run_dir, sequencer, config):
         logger.info(f"Final transfer completed successfully for {run_dir}.")
         run.update_statusdb(status="transferred_to_hpc")
         return
-    ## Final transfer attempted but failed. Log error and raise exception.
-    else:
-        logger.error(f"Final transfer failed for {run_dir}. Please check rsync logs.")
-        raise RuntimeError(f"Final transfer failed for {run_dir}.")
-        # TODO: we could retry? e.g log nr of retries in the DB and retry N times before sending aout an email warning?
 
-
-def get_run_dir(run):
-    if os.path.isabs(run) and os.path.isdir(run):
-        return run
-    elif os.path.isdir(run):
-        return os.path.abspath(run)
+    ## Unknown status of run. Log error and raise exception.
     else:
-        raise ValueError(f"Provided run path is not a valid directory: {run}")
+        logger.error(f"Unknown satus for {run_dir}. Please check logs.")
+        raise RuntimeError(f"Unknown satus for {run_dir}.")
 
 
 def transfer_runs(conf, run=None, sequencer=None):

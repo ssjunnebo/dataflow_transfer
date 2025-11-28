@@ -2,8 +2,18 @@ import json
 import logging
 import os
 import xmltodict
+import subprocess
 
 logger = logging.getLogger(__name__)
+
+
+def get_run_dir(run):
+    if os.path.isabs(run) and os.path.isdir(run):
+        return run
+    elif os.path.isdir(run):
+        return os.path.abspath(run)
+    else:
+        raise ValueError(f"Provided run path is not a valid directory: {run}")
 
 
 def find_runs(base_dir, ignore_folders=[]):
@@ -16,8 +26,27 @@ def find_runs(base_dir, ignore_folders=[]):
     return runs
 
 
+def rsync_is_running(src):
+    """Check if rsync is already running for given src."""
+    pattern = f"rsync.*{src}"
+    try:
+        subprocess.check_output(["pgrep", "-f", pattern])
+        return True
+    except subprocess.CalledProcessError:
+        return False
+
+
+def submit_background_process(command_str: str):
+    """Submit a command string as a background process."""
+
+    background_process = subprocess.Popen(
+        command_str, stdout=subprocess.PIPE, shell=True
+    )
+
+
 def parse_metadata_files(files):
-    """Given a list of files, read the content into a dict. Handle .json and .xml files differently."""
+    """Given a list of files, read the content into a dict.
+    Handle .json and .xml files differently."""
     metadata = {}
     for file_path in files:
         try:
@@ -41,7 +70,8 @@ def parse_metadata_files(files):
 
 
 def check_exit_status(file_path):
-    """Check the exit status from a given file. Return True if exit code is 0, else False."""
+    """Check the exit status from a given file. 
+    Return True if exit code is 0, else False."""
     if os.path.exists(file_path):
         with open(file_path, "r") as f:
             exit_code = f.read().strip()

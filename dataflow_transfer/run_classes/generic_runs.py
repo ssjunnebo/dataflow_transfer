@@ -2,14 +2,8 @@ import os
 import logging
 import re
 from datetime import datetime
-
-from dataflow_transfer.utils.transfer import rsync_is_running, transfer
 from dataflow_transfer.utils.statusdb import StatusdbSession
-from dataflow_transfer.utils.filesystem import (
-    parse_metadata_files,
-    check_exit_status,
-    locate_metadata,
-)
+import dataflow_transfer.utils.filesystem as fs
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +21,7 @@ class Run:
         self.final_file = ""
         self.transfer_details = self.configuration.get("transfer_details", {})
         self.final_rsync_exitcode_file = os.path.join(
-            self.run_dir, "final_rsync_exitcode"
+            self.run_dir, ".final_rsync_exitcode"
         )
         self.miarka_destination = self.sequencer_config.get("miarka_destination")
         self.db = StatusdbSession(self.configuration.get("statusdb"))
@@ -45,8 +39,7 @@ class Run:
         final_file_path = os.path.join(self.run_dir, self.final_file)
         if os.path.exists(final_file_path):
             return False
-        else:
-            return True
+        return True
 
     def generate_rsync_command(self, is_final_sync=False):
         """Generate an rsync command string."""
@@ -57,7 +50,6 @@ class Run:
             + ":"
             + self.miarka_destination
         )
-
         command = [
             "run-one",
             "rsync",
@@ -67,30 +59,28 @@ class Run:
             self.run_dir,
             destination,
         ]
-
-        if is_final_sync:
-            command.extend(
-                [
-                    f"; echo $? > {self.final_rsync_exitcode_file}",
-                ]
-            )
         command_str = " ".join(command)
+        if is_final_sync:
+            command_str += f"; echo $? > {self.final_rsync_exitcode_file}"
         return command_str
 
     def initiate_background_transfer(self):
         """Start background rsync transfer to storage."""
-        logger.info(f"Initiating background transfer for {self.run_dir}")
         background_transfer_command = self.generate_rsync_command(is_final_sync=False)
-        if rsync_is_running(src=self.run_dir):
+        if fs.rsync_is_running(src=self.run_dir):
             logger.info(
                 f"Rsync is already running for {self.run_dir}. Skipping background transfer initiation."
             )
             return
-        transfer(background_transfer_command)
-        logger.info(
-            f"{self.run_id}: Started background rsync to {self.miarka_destination}"
-            + f" with the following command: '{background_transfer_command}'"
-        )
+        try:
+            fs.submit_background_process(background_transfer_command)
+            logger.info(
+                f"{self.run_id}: Started background rsync to {self.miarka_destination}"
+                + f" with the following command: '{background_transfer_command}'"
+            )
+        except Exception as e:
+            logger.error(f"Failed to start background transfer for {self.run_id}: {e}")
+            raise e
         rsync_info = {
             "command": background_transfer_command,
             "destination_path": self.miarka_destination,
@@ -99,20 +89,21 @@ class Run:
 
     def do_final_transfer(self):
         """Start final rsync transfer to storage."""
-        logger.info(f"Initiating final transfer for {self.run_dir}")
-
         final_transfer_command = self.generate_rsync_command(is_final_sync=True)
-        if rsync_is_running(src=self.run_dir):
+        if fs.rsync_is_running(src=self.run_dir):
             logger.info(
                 f"Rsync is already running for {self.run_dir}. Skipping final transfer initiation."
             )
             return
-
-        transfer(final_transfer_command)
-        logger.info(
-            f"{self.run_id}: Started FINAL rsync to {self.miarka_destination}"
-            + f" with the following command: '{final_transfer_command}'"
-        )
+        try:
+            fs.submit_background_process(final_transfer_command)
+            logger.info(
+                f"{self.run_id}: Started FINAL rsync to {self.miarka_destination}"
+                + f" with the following command: '{final_transfer_command}'"
+            )
+        except Exception as e:
+            logger.error(f"Failed to start final transfer for {self.run_id}: {e}")
+            raise e
         rsync_info = {
             "command": final_transfer_command,
             "destination_path": self.miarka_destination,
@@ -124,31 +115,21 @@ class Run:
     @property
     def final_sync_successful(self):
         """Check if the final rsync transfer was successful by reading the exit code file."""
-        return check_exit_status(self.final_rsync_exitcode_file)
-
-    @property
-    def transfer_complete(self):
-        """Check if the final rsync exit code file exists, indicating transfer completion."""
-        return os.path.exists(self.final_rsync_exitcode_file)
+        return fs.check_exit_status(self.final_rsync_exitcode_file)
 
     def has_status(self, status_name):
         """Check if a specific status exists in the statusdb events for this run."""
         events = self.db.get_events(self.run_id)["rows"]
-        current_statuses = {}
-        if events:
-            current_statuses = events[0]["value"]
-        if current_statuses.get(status_name):
-            return True
-        else:
-            return False
+        current_statuses = events[0].get("value", {}) if events else {}
+        return True if current_statuses.get(status_name) else False
 
     def update_statusdb(self, status, additional_info=None):
-        """Update the statusdb document for this run with the given status and associated metadata files."""
+        """Update the statusdb document for this run with the given status
+        and associated metadata files."""
         db_doc = self.db.get_db_doc(
             ddoc="lookup", view="runfolder_id", run_id=self.run_id
         )
-
-        statuses_to_only_update_once = [  # some statuses should only be updated once
+        statuses_to_only_update_once = [
             "sequencing_started",
             "sequencing_finished",
         ]
@@ -164,18 +145,11 @@ class Run:
                 "events": [],
                 "files": {},
             }
-
-        files_to_include = locate_metadata(
+        files_to_include = fs.locate_metadata(
             self.sequencer_config.get("metadata_for_statusdb", []),
             self.run_dir,
         )
-        for f in files_to_include:
-            if os.path.basename(f) in db_doc["files"]:
-                files_to_include.remove(f)
-                # TODO: This excludes files that are already uploaded, but could there be incomplete documents that should be updated?
-                # Is it better to always re-parse and update?
-
-        parsed_files = parse_metadata_files(files_to_include)
+        parsed_files = fs.parse_metadata_files(files_to_include)
         db_doc["files"].update(parsed_files)
         db_doc["events"].append(
             {
@@ -184,6 +158,5 @@ class Run:
                 "data": additional_info or {},
             }
         )
-
         logger.info(f"Setting status {status} for {self.run_dir}")
         self.db.update_db_doc(db_doc)

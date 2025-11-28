@@ -1,5 +1,7 @@
 import logging
 import os
+import time
+
 from dataflow_transfer.run_classes.registry import RUN_CLASS_REGISTRY
 from dataflow_transfer.utils.filesystem import find_runs
 
@@ -69,10 +71,12 @@ def get_run_dir(run):
 
 
 def transfer_runs(conf, run=None, sequencer=None):
+    start_time = time.time()
     if run:
         logger.info(f"Transferring specific run: {run}")
         run_dir = get_run_dir(run)
         process_run(run_dir, sequencer, conf)
+        end_time = time.time()
     else:
         logger.info("Transferring all runs as per configuration")
         sequencers = conf.get("sequencers", {})
@@ -88,3 +92,6 @@ def transfer_runs(conf, run=None, sequencer=None):
                 except Exception as e:
                     logger.error(f"Error processing run {run_dir}: {e}")
                     continue  # Continue with the next run
+        end_time = time.time()
+    elapsed_time = end_time - start_time
+    logger.info(f"Data transfer process completed in {elapsed_time:.2f} seconds.")

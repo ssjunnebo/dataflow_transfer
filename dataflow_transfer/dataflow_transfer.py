@@ -1,6 +1,7 @@
 import logging
 import os
 from dataflow_transfer.run_classes.registry import RUN_CLASS_REGISTRY
+from dataflow_transfer.utils.filesystem import find_runs
 
 logger = logging.getLogger(__name__)
 
@@ -78,12 +79,12 @@ def transfer_runs(conf, run=None, sequencer=None):
         for sequencer in sequencers.keys():
             logger.info(f"Processing data from: {sequencer}")
             sequencing_dir = sequencers.get(sequencer).get("sequencing_path")
-            for run_dir in os.listdir(sequencing_dir):
-                run_dir_path = os.path.join(sequencing_dir, run_dir)
-                if os.path.isdir(run_dir_path):
-                    logger.info(f"Processing directory: {run_dir_path}")
-                    try:
-                        process_run(run_dir_path, sequencer, conf)
-                    except Exception as e:
-                        logger.error(f"Error processing run {run_dir}: {e}")
-                        continue  # Continue with the next run
+            for run_dir in find_runs(
+                sequencing_dir, sequencers.get(sequencer).get("ignore_folders", [])
+            ):
+                logger.info(f"Processing directory: {run_dir}")
+                try:
+                    process_run(run_dir, sequencer, conf)
+                except Exception as e:
+                    logger.error(f"Error processing run {run_dir}: {e}")
+                    continue  # Continue with the next run

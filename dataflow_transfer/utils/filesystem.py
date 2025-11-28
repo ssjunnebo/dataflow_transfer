@@ -6,6 +6,16 @@ import xmltodict
 logger = logging.getLogger(__name__)
 
 
+def find_runs(base_dir, ignore_folders=[]):
+    """Find run directories in the given base directory, ignoring specified folders."""
+    runs = []
+    for entry in os.listdir(base_dir):
+        entry_path = os.path.join(base_dir, entry)
+        if os.path.isdir(entry_path) and entry not in ignore_folders:
+            runs.append(entry_path)
+    return runs
+
+
 def parse_metadata_files(files):
     """Given a list of files, read the content into a dict. Handle .json and .xml files differently."""
     metadata = {}

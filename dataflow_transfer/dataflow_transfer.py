@@ -39,8 +39,8 @@ def process_run(run_dir, sequencer, config):
     if not run.transfer_complete:  # Only checks if the file exists, not if it was successful. That is handled below.
         if run.has_status("sequencing_finished"):
             logger.info(
-                f"Run {run_dir} is already marked as sequenced, but transfer not complete. ",
-                "Will attempt final transfer again.",
+                f"Run {run_dir} is already marked as sequenced, but transfer not complete. "
+                "Will attempt final transfer again."
             )
         run.update_statusdb(status="sequencing_finished")
         logger.info(f"Sequencing is complete for {run_dir}. Starting final transfer.")

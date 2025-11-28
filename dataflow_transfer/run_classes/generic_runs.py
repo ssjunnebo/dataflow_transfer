@@ -63,8 +63,7 @@ class Run:
             "rsync",
             "-au",
             "--log-file=" + os.path.join(self.run_dir, "rsync_remote_log.txt"),
-            "--chown=" + self.transfer_details.get("owner"),
-            "--chmod=" + self.transfer_details.get("permissions"),
+            *(self.sequencer_config.get("rsync_options", [])),
             self.run_dir,
             destination,
         ]
@@ -155,7 +154,7 @@ class Run:
         ]
         if status in statuses_to_only_update_once:
             for event in db_doc.get("events", []):
-                if event["status"] == status:
+                if event["event_type"] == status:
                     return
 
         if not db_doc:
@@ -180,7 +179,7 @@ class Run:
         db_doc["files"].update(parsed_files)
         db_doc["events"].append(
             {
-                "status": status,
+                "event_type": status,
                 "timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "data": additional_info or {},
             }

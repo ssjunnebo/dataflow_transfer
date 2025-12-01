@@ -52,8 +52,8 @@ def process_run(run_dir, sequencer, config):
 
     ## Unknown status of run. Log error and raise exception.
     else:
-        logger.error(f"Unknown satus for {run_dir}. Please check logs.")
-        raise RuntimeError(f"Unknown satus for {run_dir}.")
+        logger.error(f"Unknown status for {run_dir}. Please check logs.")
+        raise RuntimeError(f"Unknown status for {run_dir}.")
 
 
 def transfer_runs(conf, run=None, sequencer=None):

@@ -1,6 +1,8 @@
 import logging
-import os
+import time
+
 from dataflow_transfer.run_classes.registry import RUN_CLASS_REGISTRY
+from dataflow_transfer.utils.filesystem import get_run_dir, find_runs
 
 logger = logging.getLogger(__name__)
 
@@ -20,29 +22,25 @@ def process_run(run_dir, sequencer, config):
     run.confirm_run_type()
 
     ## Transfer already completed. Do nothing.
-    if (
-        run.final_sync_successful
-    ):  # Removing the exit code file lets the run retry transfer
+    if run.final_sync_successful:
+        # Removing the exit code file lets the run retry transfer
         logger.info(f"Transfer of {run_dir} is finished. No action needed.")
         return
 
     ## Sequencing ongoing. Start background transfer if not already running.
     if run.sequencing_ongoing:
         run.update_statusdb(status="sequencing_started")
-        logger.info(
-            f"Sequencing is ongoing for {run_dir}. Starting background transfer."
-        )
         run.initiate_background_transfer()
         return
 
     ## Sequencing finished but transfer not complete. Start final transfer.
-    if not run.transfer_complete:  # Only checks if the file exists, not if it was successful. That is handled below.
+    if not run.final_sync_successful:
         if run.has_status("sequencing_finished"):
             logger.info(
-                f"Run {run_dir} is already marked as sequenced, but transfer not complete. Will attempt final transfer again."
+                f"Run {run_dir} is already marked as sequenced, but transfer not complete. "
+                "Will attempt final transfer again."
             )
         run.update_statusdb(status="sequencing_finished")
-        logger.info(f"Sequencing is complete for {run_dir}. Starting final transfer.")
         run.do_final_transfer()
         return
 
@@ -51,40 +49,35 @@ def process_run(run_dir, sequencer, config):
         logger.info(f"Final transfer completed successfully for {run_dir}.")
         run.update_statusdb(status="transferred_to_hpc")
         return
-    ## Final transfer attempted but failed. Log error and raise exception.
-    else:
-        logger.error(f"Final transfer failed for {run_dir}. Please check rsync logs.")
-        raise RuntimeError(
-            f"Final transfer failed for {run_dir}."
-        )  # TODO: we could retry? e.g log nr of retries in the DB and retry N times before sending aout an email warning?
 
-
-def get_run_dir(run):
-    if os.path.isabs(run) and os.path.isdir(run):
-        return run
-    elif os.path.isdir(run):
-        return os.path.abspath(run)
+    ## Unknown status of run. Log error and raise exception.
     else:
-        raise ValueError(f"Provided run path is not a valid directory: {run}")
+        logger.error(f"Unknown status for {run_dir}. Please check logs.")
+        raise RuntimeError(f"Unknown status for {run_dir}.")
 
 
 def transfer_runs(conf, run=None, sequencer=None):
+    start_time = time.time()
     if run:
         logger.info(f"Transferring specific run: {run}")
         run_dir = get_run_dir(run)
         process_run(run_dir, sequencer, conf)
+        end_time = time.time()
     else:
         logger.info("Transferring all runs as per configuration")
         sequencers = conf.get("sequencers", {})
         for sequencer in sequencers.keys():
             logger.info(f"Processing data from: {sequencer}")
-            sequencing_dir = sequencer.get("sequencing_path")
-            for run_dir in os.listdir(sequencing_dir):
-                run_dir_path = os.path.join(sequencing_dir, run_dir)
-                if os.path.isdir(run_dir_path):
-                    logger.info(f"Processing directory: {run_dir_path}")
-                    try:
-                        process_run(run_dir_path, sequencer, conf)
-                    except Exception as e:
-                        logger.error(f"Error processing run {run_dir}: {e}")
-                        continue  # Continue with the next run
+            sequencing_dir = sequencers.get(sequencer).get("sequencing_path")
+            for run_dir in find_runs(
+                sequencing_dir, sequencers.get(sequencer).get("ignore_folders", [])
+            ):
+                logger.info(f"Processing directory: {run_dir}")
+                try:
+                    process_run(run_dir, sequencer, conf)
+                except Exception as e:
+                    logger.error(f"Error processing run {run_dir}: {e}")
+                    continue  # Continue with the next run
+        end_time = time.time()
+    elapsed_time = end_time - start_time
+    logger.info(f"Data transfer process completed in {elapsed_time:.2f} seconds.")

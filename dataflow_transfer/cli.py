@@ -2,6 +2,7 @@ import click
 import os
 import logging
 import yaml
+import importlib.metadata
 
 from dataflow_transfer.dataflow_transfer import transfer_runs
 from dataflow_transfer import log
@@ -17,13 +18,14 @@ def load_config(config_file_path):
 
 
 @click.command()
+@click.version_option()
 @click.option(
     "-c",
     "--config-file",
     default=os.path.join(os.environ["HOME"], ".df_transfer/df_transfer.yaml"),
     envvar="TRANSFER_CONFIG",
     type=click.File("r"),
-    help="Path to dataflow_transfer configuration file",
+    help="Path to dataflow_transfer configuration file. Defaults to ~/.df_transfer/df_transfer.yaml",
 )
 @click.option(
     "-r",
@@ -44,13 +46,6 @@ def load_config(config_file_path):
 def cli(config_file, run, sequencer):
     """
     Command line interface for dataflow_transfer.
-
-    This CLI allows users to specify a run identifier to transfer.
-
-    Args:
-        config_file (file): Path to the configuration file.
-        run (str): A identifier, e.g., '20250528_LH00217_0219_A22TT52LT4'.
-        sequencer (str): Sequencer type, e.g., 'NovaSeqXPlus', 'MiSeq', 'AVITI'.
     """
     if sequencer and not run:
         raise click.UsageError(

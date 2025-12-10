@@ -154,3 +154,5 @@ class TestLocateMetadata:
             open(os.path.join(tmpdir, "meta2.json"), "w").close()
             located = locate_metadata(["meta1.json", "meta2.json"], tmpdir)
             assert len(located) == 2
+            assert os.path.join(tmpdir, "meta1.json") in located
+            assert os.path.join(tmpdir, "meta2.json") in located

@@ -2,7 +2,6 @@ import click
 import os
 import logging
 import yaml
-import importlib.metadata
 
 from dataflow_transfer.dataflow_transfer import transfer_runs
 from dataflow_transfer import log

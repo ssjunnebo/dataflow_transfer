@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_run_dir(run):
+    """Get absolute path of the run directory."""
     if os.path.isabs(run) and os.path.isdir(run):
         return run
     elif os.path.isdir(run):

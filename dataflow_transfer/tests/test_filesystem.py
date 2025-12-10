@@ -100,6 +100,7 @@ class TestParseMetadataFiles:
                 f.write("<root><key>value</key></root>")
             metadata = parse_metadata_files([xml_file])
             assert "metadata.xml" in metadata
+            assert metadata["metadata.xml"]["root"]["key"] == "value"
 
     def test_unsupported_file_type(self):
         with tempfile.TemporaryDirectory() as tmpdir:

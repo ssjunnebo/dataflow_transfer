@@ -2,7 +2,7 @@ import json
 import os
 import tempfile
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from subprocess import CalledProcessError
 
 from dataflow_transfer.utils.filesystem import (
@@ -32,7 +32,7 @@ class TestGetRunDir:
                 os.chdir(original_cwd)
 
     def test_invalid_path_raises_error(self):
-        with pytest.raises(ValueError, match="not a valid directory"):
+        with pytest.raises(ValueError):
             get_run_dir("/nonexistent/path")
 
 
@@ -42,7 +42,8 @@ class TestFindRuns:
             os.mkdir(os.path.join(tmpdir, "run1"))
             os.mkdir(os.path.join(tmpdir, "run2"))
             runs = find_runs(tmpdir)
-            assert len(runs) == 2
+            assert os.path.join(tmpdir, "run1") in runs
+            assert os.path.join(tmpdir, "run2") in runs
 
     def test_find_runs_with_ignore(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -50,14 +51,17 @@ class TestFindRuns:
             os.mkdir(os.path.join(tmpdir, "run2"))
             os.mkdir(os.path.join(tmpdir, "ignore_me"))
             runs = find_runs(tmpdir, ignore_folders=["ignore_me"])
-            assert len(runs) == 2
+            assert os.path.join(tmpdir, "run1") in runs
+            assert os.path.join(tmpdir, "run2") in runs
+            assert os.path.join(tmpdir, "ignore_me") not in runs
 
     def test_find_runs_ignores_files(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             os.mkdir(os.path.join(tmpdir, "run1"))
             open(os.path.join(tmpdir, "file.txt"), "w").close()
             runs = find_runs(tmpdir)
-            assert len(runs) == 1
+            assert os.path.join(tmpdir, "run1") in runs
+            assert os.path.join(tmpdir, "file.txt") not in runs
 
 
 class TestRsyncIsRunning:

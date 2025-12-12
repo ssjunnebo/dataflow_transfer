@@ -128,7 +128,8 @@ class Run:
         and associated metadata files."""
         db_doc = self.db.get_db_doc(
             ddoc="lookup", view="runfolder_id", run_id=self.run_id
-        )
+        ) or {}
+        
         statuses_to_only_update_once = [
             "sequencing_started",
             "sequencing_finished",

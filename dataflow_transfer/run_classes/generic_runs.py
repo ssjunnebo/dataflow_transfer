@@ -50,8 +50,9 @@ class Run:
             + ":"
             + self.miarka_destination
         )
+        run_one_bin = self.configuration.get("run_one_path", "run-one")
         command = [
-            "run-one",
+            run_one_bin,
             "rsync",
             "-au",
             "--log-file=" + os.path.join(self.run_dir, "rsync_remote_log.txt"),
@@ -126,10 +127,11 @@ class Run:
     def update_statusdb(self, status, additional_info=None):
         """Update the statusdb document for this run with the given status
         and associated metadata files."""
-        db_doc = self.db.get_db_doc(
-            ddoc="lookup", view="runfolder_id", run_id=self.run_id
-        ) or {}
-        
+        db_doc = (
+            self.db.get_db_doc(ddoc="lookup", view="runfolder_id", run_id=self.run_id)
+            or {}
+        )
+
         statuses_to_only_update_once = [
             "sequencing_started",
             "sequencing_finished",

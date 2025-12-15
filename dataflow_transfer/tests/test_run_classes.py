@@ -129,6 +129,47 @@ def test_generate_rsync_command(run_fixture, final_sync, request):
         assert f"; echo $? > {run_obj.final_rsync_exitcode_file}" in rsync_command
 
 
+# use parameterization for the test fixtures to test initiate_background_transfer. mock fs.rsync_is_running, fs.submit_background_process and update_statusdb
+@pytest.mark.parametrize(
+    "run_fixture, rsync_running",
+    [
+        ("nextseq_testobj", False),
+        ("nextseq_testobj", True),
+        ("miseqseq_testobj", False),
+        ("miseqseq_testobj", True),
+    ],
+)
+def test_initiate_background_transfer(run_fixture, rsync_running, request, monkeypatch):
+    run_obj = request.getfixturevalue(run_fixture)
+
+    def mock_rsync_is_running(src):
+        return rsync_running
+
+    def mock_submit_background_process(command_str):
+        mock_submit_background_process.called = True
+        mock_submit_background_process.command_str = command_str
+
+    def mock_update_statusdb(status, additional_info=None):
+        mock_update_statusdb.called = True
+        mock_update_statusdb.status = status
+
+    monkeypatch.setattr(generic_runs.fs, "rsync_is_running", mock_rsync_is_running)
+    monkeypatch.setattr(
+        generic_runs.fs, "submit_background_process", mock_submit_background_process
+    )
+    monkeypatch.setattr(run_obj, "update_statusdb", mock_update_statusdb)
+
+    run_obj.initiate_background_transfer()
+
+    if rsync_running:
+        assert not hasattr(mock_submit_background_process, "called")
+    else:
+        assert hasattr(mock_submit_background_process, "called")
+        assert "rsync" in mock_submit_background_process.command_str
+        assert hasattr(mock_update_statusdb, "called")
+        assert mock_update_statusdb.status == "transfer_started"
+
+
 def test_do_final_transfer():
     pass  # Further tests can be implemented for do_final_transfer
 

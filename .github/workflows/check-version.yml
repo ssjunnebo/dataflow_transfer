@@ -13,14 +13,14 @@ jobs:
     - name: Check version update
       run: |
         PR_NUMBER=${{ github.event.pull_request.number }}
-        FILE_CHANGED=$(git diff origin/master...HEAD --name-only | grep 'pyproject.toml' || true)
+        FILE_CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha }} HEAD | grep 'pyproject.toml' || true)
         if [ -z "$FILE_CHANGED" ]; then
           echo "pyproject.toml was not changed in this PR. Please update the version."
           exit 1
         else
           echo "pyproject.toml was changed in this PR."
         fi
-        VERSION_CHANGED=$(git diff origin/master...HEAD pyproject.toml | grep 'version =' || true)
+        VERSION_CHANGED=$(git diff ${{ github.event.pull_request.base.sha }} HEAD | grep 'version =' || true)
         if [ -z "$VERSION_CHANGED" ]; then
           echo "Version in pyproject.toml was not updated. Please update the version."
           exit 1

@@ -1,18 +1,19 @@
 import json
 import os
 import tempfile
-import pytest
-from unittest.mock import patch
 from subprocess import CalledProcessError
+from unittest.mock import patch
+
+import pytest
 
 from dataflow_transfer.utils.filesystem import (
-    get_run_dir,
+    check_exit_status,
     find_runs,
+    get_run_dir,
+    locate_metadata,
+    parse_metadata_files,
     rsync_is_running,
     submit_background_process,
-    parse_metadata_files,
-    check_exit_status,
-    locate_metadata,
 )
 
 

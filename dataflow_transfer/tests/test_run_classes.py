@@ -3,6 +3,33 @@ import pytest
 
 
 from dataflow_transfer.run_classes import illumina_runs, generic_runs
+# TODO: add tests for ONT and ELEMENT runs when those are implemented
+
+
+@pytest.fixture
+def novaseqxplus_testobj(tmp_path):
+    config = {
+        "log": {"file": "test.log"},
+        "transfer_details": {"user": "testuser", "host": "testhost"},
+        "statusdb": {
+            "username": "dbuser",
+            "password": "dbpass",
+            "url:": "dburl",
+            "database": "dbname",
+        },
+        "sequencers": {
+            "NovaSeqXPlus": {
+                "miarka_destination": "/data/NovaSeqXPlus",
+                "metadata_for_statusdb": ["RunInfo.xml", "RunParameters.xml"],
+                "ignore_folders": ["nosync"],
+                "rsync_options": ["--chmod=Dg+s,g+rw"],
+            }
+        },
+    }
+    run_id = "20251010_LH00202_0284_B22CVHTLT1"
+    run_dir = tmp_path / run_id
+    run_dir.mkdir()
+    return illumina_runs.NovaSeqXPlusRun(str(run_dir), config)
 
 
 @pytest.fixture
@@ -75,6 +102,7 @@ def mock_statusdbsession(monkeypatch):
 @pytest.mark.parametrize(
     "run_fixture, expected_run_type",
     [
+        ("novaseqxplus_testobj", "NovaSeqXPlus"),
         ("nextseq_testobj", "NextSeq"),
         ("miseqseq_testobj", "MiSeq"),
     ],
@@ -92,6 +120,7 @@ def test_confirm_run_type(run_fixture, expected_run_type, request):
 @pytest.mark.parametrize(
     "run_fixture",
     [
+        "novaseqxplus_testobj",
         "nextseq_testobj",
         "miseqseq_testobj",
     ],
@@ -110,6 +139,8 @@ def test_sequencing_ongoing(run_fixture, request):
 @pytest.mark.parametrize(
     "run_fixture, final_sync",
     [
+        ("novaseqxplus_testobj", False),
+        ("novaseqxplus_testobj", True),
         ("nextseq_testobj", False),
         ("nextseq_testobj", True),
         ("miseqseq_testobj", False),
@@ -130,6 +161,10 @@ def test_generate_rsync_command(run_fixture, final_sync, request):
 @pytest.mark.parametrize(
     "run_fixture, rsync_running, final",
     [
+        ("novaseqxplus_testobj", False, False),
+        ("novaseqxplus_testobj", True, False),
+        ("novaseqxplus_testobj", False, True),
+        ("novaseqxplus_testobj", True, True),
         ("nextseq_testobj", False, False),
         ("nextseq_testobj", True, False),
         ("nextseq_testobj", False, True),
@@ -177,6 +212,8 @@ def test_start_transfer(run_fixture, rsync_running, final, request, monkeypatch)
 @pytest.mark.parametrize(
     "run_fixture, sync_successful",
     [
+        ("novaseqxplus_testobj", True),
+        ("novaseqxplus_testobj", False),
         ("nextseq_testobj", True),
         ("nextseq_testobj", False),
         ("miseqseq_testobj", True),
@@ -199,6 +236,10 @@ def test_final_sync_successful(run_fixture, sync_successful, request):
 @pytest.mark.parametrize(
     "run_fixture, status_to_check, expected_result",
     [
+        ("novaseqxplus_testobj", "sequencing_started", False),
+        ("novaseqxplus_testobj", "sequencing_started", True),
+        ("novaseqxplus_testobj", "sequencing_finished", False),
+        ("novaseqxplus_testobj", "sequencing_finished", True),
         ("nextseq_testobj", "sequencing_started", False),
         ("nextseq_testobj", "sequencing_started", True),
         ("nextseq_testobj", "sequencing_finished", False),

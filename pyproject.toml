@@ -18,11 +18,6 @@ ignore = [
     "E741", # Ambiguous variable name
 ]
 
-[tool.mypy]
-ignore_missing_imports = true
-follow_imports = 'skip'
-exclude = "build"
-
 [project]
 name = "dataflow_transfer"
 version = "1.0.3"

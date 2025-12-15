@@ -129,10 +129,6 @@ def test_generate_rsync_command(run_fixture, final_sync, request):
         assert f"; echo $? > {run_obj.final_rsync_exitcode_file}" in rsync_command
 
 
-def test_initiate_background_transfer():
-    pass  # Further tests can be implemented for initiate_background_transfer
-
-
 def test_do_final_transfer():
     pass  # Further tests can be implemented for do_final_transfer
 
@@ -185,3 +181,62 @@ def test_has_status(run_fixture, status_to_check, expected_result, request):
 
     run_obj.db = MockDB()
     assert run_obj.has_status(status_to_check) == expected_result
+
+
+@pytest.mark.parametrize(
+    "run_fixture, existing_statuses, status_to_update",
+    [
+        (
+            "nextseq_testobj",
+            [],
+            "sequencing_started",
+        ),
+        (
+            "nextseq_testobj",
+            [{"event_type": "sequencing_started"}],
+            "transfer_started",
+        ),
+        (
+            "miseqseq_testobj",
+            [],
+            "sequencing_started",
+        ),
+        (
+            "miseqseq_testobj",
+            [{"event_type": "sequencing_started"}],
+            "transfer_started",
+        ),
+    ],
+)
+def test_update_statusdb(
+    run_fixture,
+    existing_statuses,
+    status_to_update,
+    request,
+):
+    run_obj = request.getfixturevalue(run_fixture)
+
+    class MockDB:
+        def __init__(self):
+            self.updated_doc = None
+
+        def get_db_doc(self, ddoc, view, run_id):
+            return {"events": existing_statuses, "files": {}}
+
+        def update_db_doc(self, doc):
+            self.updated_doc = doc
+
+    import dataflow_transfer.utils.filesystem as fs
+
+    def mock_locate_metadata(metadata_list, run_dir):
+        return []
+
+    def mock_parse_metadata_files(files):
+        return {}
+
+    fs.locate_metadata = mock_locate_metadata
+    fs.parse_metadata_files = mock_parse_metadata_files
+    mock_db = MockDB()
+    run_obj.db = mock_db
+    run_obj.update_statusdb(status=status_to_update)
+    assert mock_db.updated_doc["events"][-1]["event_type"] == status_to_update

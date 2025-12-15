@@ -1,0 +1,29 @@
+# write a github actions workflow that checks that the version in the pyproject.toml file has been updated on every pull request to master
+name: Check version update
+on:
+  pull_request:
+    branches: [ "master" ]
+permissions:
+  contents: read
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Check version update
+      run: |
+        PR_NUMBER=${{ github.event.pull_request.number }}
+        FILE_CHANGED=$(git diff origin/master...HEAD --name-only | grep 'pyproject.toml' || true)
+        if [ -z "$FILE_CHANGED" ]; then
+          echo "pyproject.toml was not changed in this PR. Please update the version."
+          exit 1
+        else
+          echo "pyproject.toml was changed in this PR."
+        fi
+        VERSION_CHANGED=$(git diff origin/master...HEAD pyproject.toml | grep 'version =' || true)
+        if [ -z "$VERSION_CHANGED" ]; then
+          echo "Version in pyproject.toml was not updated. Please update the version."
+          exit 1
+        else
+          echo "Version in pyproject.toml was updated."
+        fi

@@ -57,7 +57,6 @@ def miseqseq_testobj(tmp_path):
     return illumina_runs.MiSeqRun(str(run_dir), config)
 
 
-# mock calls to dataflow_transfer.utils.statusdb.StatusdbSession to avoid actual DB connections
 @pytest.fixture(autouse=True)
 def mock_statusdbsession(monkeypatch):
     class MockStatusdbSession:
@@ -73,7 +72,6 @@ def mock_statusdbsession(monkeypatch):
     monkeypatch.setattr(generic_runs, "StatusdbSession", MockStatusdbSession)
 
 
-# use parameterization for the test fixtures to test confirm_run_type
 @pytest.mark.parametrize(
     "run_fixture, expected_run_type",
     [
@@ -129,7 +127,6 @@ def test_generate_rsync_command(run_fixture, final_sync, request):
         assert f"; echo $? > {run_obj.final_rsync_exitcode_file}" in rsync_command
 
 
-# use parameterization for the test fixtures to test initiate_background_transfer. mock fs.rsync_is_running, fs.submit_background_process and update_statusdb
 @pytest.mark.parametrize(
     "run_fixture, rsync_running, final",
     [
@@ -177,10 +174,6 @@ def test_start_transfer(run_fixture, rsync_running, final, request, monkeypatch)
             assert mock_update_statusdb.status == "transfer_started"
 
 
-def test_do_final_transfer():
-    pass  # Further tests can be implemented for do_final_transfer
-
-
 @pytest.mark.parametrize(
     "run_fixture, sync_successful",
     [
@@ -203,7 +196,6 @@ def test_final_sync_successful(run_fixture, sync_successful, request):
     assert run_obj.final_sync_successful == sync_successful
 
 
-# use fixtures to test Run.has_status for differernt illumina_runs objects
 @pytest.mark.parametrize(
     "run_fixture, status_to_check, expected_result",
     [

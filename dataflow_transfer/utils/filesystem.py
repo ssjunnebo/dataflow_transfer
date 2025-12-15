@@ -1,8 +1,9 @@
 import json
 import logging
 import os
-import xmltodict
 import subprocess
+
+import xmltodict
 
 logger = logging.getLogger(__name__)
 
@@ -40,9 +41,7 @@ def rsync_is_running(src):
 def submit_background_process(command_str: str):
     """Submit a command string as a background process."""
 
-    background_process = subprocess.Popen(
-        command_str, stdout=subprocess.PIPE, shell=True
-    )
+    subprocess.Popen(command_str, stdout=subprocess.PIPE, shell=True)
 
 
 def parse_metadata_files(files):
@@ -52,10 +51,10 @@ def parse_metadata_files(files):
     for file_path in files:
         try:
             if file_path.endswith(".json"):
-                with open(file_path, "r") as f:
+                with open(file_path) as f:
                     metadata[os.path.basename(file_path)] = json.load(f)
             elif file_path.endswith(".xml"):
-                with open(file_path, "r") as f:
+                with open(file_path) as f:
                     xml_content = xmltodict.parse(
                         f.read(), attr_prefix="", cdata_key="text"
                     )
@@ -71,10 +70,10 @@ def parse_metadata_files(files):
 
 
 def check_exit_status(file_path):
-    """Check the exit status from a given file. 
+    """Check the exit status from a given file.
     Return True if exit code is 0, else False."""
     if os.path.exists(file_path):
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             exit_code = f.read().strip()
             if exit_code == "0":
                 return True

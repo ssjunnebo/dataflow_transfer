@@ -1,9 +1,10 @@
-import os
 import logging
+import os
 import re
 from datetime import datetime
-from dataflow_transfer.utils.statusdb import StatusdbSession
+
 import dataflow_transfer.utils.filesystem as fs
+from dataflow_transfer.utils.statusdb import StatusdbSession
 
 logger = logging.getLogger(__name__)
 

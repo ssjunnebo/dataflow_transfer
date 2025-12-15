@@ -2,7 +2,7 @@ import logging
 import time
 
 from dataflow_transfer.run_classes.registry import RUN_CLASS_REGISTRY
-from dataflow_transfer.utils.filesystem import get_run_dir, find_runs
+from dataflow_transfer.utils.filesystem import find_runs, get_run_dir
 
 logger = logging.getLogger(__name__)
 

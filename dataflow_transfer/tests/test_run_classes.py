@@ -1,8 +1,9 @@
 import os
+
 import pytest
 
+from dataflow_transfer.run_classes import generic_runs, illumina_runs
 
-from dataflow_transfer.run_classes import illumina_runs, generic_runs
 # TODO: add tests for ONT and ELEMENT runs when those are implemented
 
 

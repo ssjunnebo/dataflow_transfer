@@ -131,15 +131,19 @@ def test_generate_rsync_command(run_fixture, final_sync, request):
 
 # use parameterization for the test fixtures to test initiate_background_transfer. mock fs.rsync_is_running, fs.submit_background_process and update_statusdb
 @pytest.mark.parametrize(
-    "run_fixture, rsync_running",
+    "run_fixture, rsync_running, final",
     [
-        ("nextseq_testobj", False),
-        ("nextseq_testobj", True),
-        ("miseqseq_testobj", False),
-        ("miseqseq_testobj", True),
+        ("nextseq_testobj", False, False),
+        ("nextseq_testobj", True, False),
+        ("nextseq_testobj", False, True),
+        ("nextseq_testobj", True, True),
+        ("miseqseq_testobj", False, False),
+        ("miseqseq_testobj", True, False),
+        ("miseqseq_testobj", False, True),
+        ("miseqseq_testobj", True, True),
     ],
 )
-def test_initiate_background_transfer(run_fixture, rsync_running, request, monkeypatch):
+def test_start_transfer(run_fixture, rsync_running, final, request, monkeypatch):
     run_obj = request.getfixturevalue(run_fixture)
 
     def mock_rsync_is_running(src):
@@ -159,7 +163,7 @@ def test_initiate_background_transfer(run_fixture, rsync_running, request, monke
     )
     monkeypatch.setattr(run_obj, "update_statusdb", mock_update_statusdb)
 
-    run_obj.initiate_background_transfer()
+    run_obj.start_transfer(final=final)
 
     if rsync_running:
         assert not hasattr(mock_submit_background_process, "called")
@@ -167,7 +171,10 @@ def test_initiate_background_transfer(run_fixture, rsync_running, request, monke
         assert hasattr(mock_submit_background_process, "called")
         assert "rsync" in mock_submit_background_process.command_str
         assert hasattr(mock_update_statusdb, "called")
-        assert mock_update_statusdb.status == "transfer_started"
+        if final:
+            assert mock_update_statusdb.status == "final_transfer_started"
+        else:
+            assert mock_update_statusdb.status == "transfer_started"
 
 
 def test_do_final_transfer():

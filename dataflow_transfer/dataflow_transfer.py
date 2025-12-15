@@ -30,7 +30,7 @@ def process_run(run_dir, sequencer, config):
     ## Sequencing ongoing. Start background transfer if not already running.
     if run.sequencing_ongoing:
         run.update_statusdb(status="sequencing_started")
-        run.initiate_background_transfer()
+        run.start_transfer(final=False)
         return
 
     ## Sequencing finished but transfer not complete. Start final transfer.
@@ -41,7 +41,7 @@ def process_run(run_dir, sequencer, config):
                 "Will attempt final transfer again."
             )
         run.update_statusdb(status="sequencing_finished")
-        run.do_final_transfer()
+        run.start_transfer(final=True)
         return
 
     ## Final transfer completed successfully. Update statusdb.

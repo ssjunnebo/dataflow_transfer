@@ -1,6 +1,6 @@
 [project]
 name = "dataflow_transfer"
-version = "1.0.2"
+version = "1.0.3"
 description = "Script for transferring sequencing data from sequencers to storage"
 authors = [
     { name = "Sara Sjunnebo", email = "sara.sjunnebo@scilifelab.se" },

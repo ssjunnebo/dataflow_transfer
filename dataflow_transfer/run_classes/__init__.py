@@ -1,12 +1,11 @@
 # This adds the run classes to the registry. Do not remove.
 
-from .registry import RUN_CLASS_REGISTRY
-
-
+from dataflow_transfer.run_classes.element_runs import AVITIRun  # noqa: F401, I001
 from dataflow_transfer.run_classes.illumina_runs import (
-    NovaSeqXPlusRun,
-    NextSeqRun,
-    MiSeqRun,
+    MiSeqRun,  # noqa: F401
+    NextSeqRun,  # noqa: F401
+    NovaSeqXPlusRun,  # noqa: F401
 )
-from dataflow_transfer.run_classes.ont_runs import PromethIONRun, MinIONRun
-from dataflow_transfer.run_classes.element_runs import AVITIRun
+from dataflow_transfer.run_classes.ont_runs import MinIONRun, PromethIONRun  # noqa: F401
+
+from .registry import RUN_CLASS_REGISTRY  # noqa: F401

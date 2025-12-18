@@ -1,17 +1,18 @@
-import click
-import os
 import logging
+import os
+
+import click
 import yaml
 
-from dataflow_transfer.dataflow_transfer import transfer_runs
 from dataflow_transfer import log
+from dataflow_transfer.dataflow_transfer import transfer_runs
 from dataflow_transfer.run_classes.registry import RUN_CLASS_REGISTRY
 
 logger = logging.getLogger(__name__)
 
 
 def load_config(config_file_path):
-    with open(config_file_path, "r") as file:
+    with open(config_file_path) as file:
         config = yaml.safe_load(file)
     return config
 

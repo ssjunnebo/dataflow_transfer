@@ -1,9 +1,10 @@
-import os
 import logging
+import os
 import re
 from datetime import datetime
-from dataflow_transfer.utils.statusdb import StatusdbSession
+
 import dataflow_transfer.utils.filesystem as fs
+from dataflow_transfer.utils.statusdb import StatusdbSession
 
 logger = logging.getLogger(__name__)
 
@@ -65,53 +66,33 @@ class Run:
             command_str += f"; echo $? > {self.final_rsync_exitcode_file}"
         return command_str
 
-    def initiate_background_transfer(self):
+    def start_transfer(self, final=False):
         """Start background rsync transfer to storage."""
-        background_transfer_command = self.generate_rsync_command(is_final_sync=False)
+        transfer_command = self.generate_rsync_command(is_final_sync=final)
         if fs.rsync_is_running(src=self.run_dir):
             logger.info(
                 f"Rsync is already running for {self.run_dir}. Skipping background transfer initiation."
             )
             return
         try:
-            fs.submit_background_process(background_transfer_command)
+            fs.submit_background_process(transfer_command)
             logger.info(
-                f"{self.run_id}: Started background rsync to {self.miarka_destination}"
-                + f" with the following command: '{background_transfer_command}'"
+                f"{self.run_id}: Started rsync to {self.miarka_destination}"
+                + f" with the following command: '{transfer_command}'"
             )
         except Exception as e:
-            logger.error(f"Failed to start background transfer for {self.run_id}: {e}")
+            logger.error(f"Failed to start rsync for {self.run_id}: {e}")
             raise e
         rsync_info = {
-            "command": background_transfer_command,
+            "command": transfer_command,
             "destination_path": self.miarka_destination,
         }
-        self.update_statusdb(status="transfer_started", additional_info=rsync_info)
-
-    def do_final_transfer(self):
-        """Start final rsync transfer to storage."""
-        final_transfer_command = self.generate_rsync_command(is_final_sync=True)
-        if fs.rsync_is_running(src=self.run_dir):
-            logger.info(
-                f"Rsync is already running for {self.run_dir}. Skipping final transfer initiation."
+        if final:
+            self.update_statusdb(
+                status="final_transfer_started", additional_info=rsync_info
             )
-            return
-        try:
-            fs.submit_background_process(final_transfer_command)
-            logger.info(
-                f"{self.run_id}: Started FINAL rsync to {self.miarka_destination}"
-                + f" with the following command: '{final_transfer_command}'"
-            )
-        except Exception as e:
-            logger.error(f"Failed to start final transfer for {self.run_id}: {e}")
-            raise e
-        rsync_info = {
-            "command": final_transfer_command,
-            "destination_path": self.miarka_destination,
-        }
-        self.update_statusdb(
-            status="final_transfer_started", additional_info=rsync_info
-        )
+        else:
+            self.update_statusdb(status="transfer_started", additional_info=rsync_info)
 
     @property
     def final_sync_successful(self):

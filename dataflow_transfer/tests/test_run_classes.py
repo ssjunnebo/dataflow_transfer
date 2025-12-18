@@ -1,8 +1,36 @@
 import os
+
 import pytest
 
+from dataflow_transfer.run_classes import generic_runs, illumina_runs
 
-from dataflow_transfer.run_classes import illumina_runs, generic_runs
+# TODO: add tests for ONT and ELEMENT runs when those are implemented
+
+
+@pytest.fixture
+def novaseqxplus_testobj(tmp_path):
+    config = {
+        "log": {"file": "test.log"},
+        "transfer_details": {"user": "testuser", "host": "testhost"},
+        "statusdb": {
+            "username": "dbuser",
+            "password": "dbpass",
+            "url:": "dburl",
+            "database": "dbname",
+        },
+        "sequencers": {
+            "NovaSeqXPlus": {
+                "miarka_destination": "/data/NovaSeqXPlus",
+                "metadata_for_statusdb": ["RunInfo.xml", "RunParameters.xml"],
+                "ignore_folders": ["nosync"],
+                "rsync_options": ["--chmod=Dg+s,g+rw"],
+            }
+        },
+    }
+    run_id = "20251010_LH00202_0284_B22CVHTLT1"
+    run_dir = tmp_path / run_id
+    run_dir.mkdir()
+    return illumina_runs.NovaSeqXPlusRun(str(run_dir), config)
 
 
 @pytest.fixture
@@ -57,7 +85,6 @@ def miseqseq_testobj(tmp_path):
     return illumina_runs.MiSeqRun(str(run_dir), config)
 
 
-# mock calls to dataflow_transfer.utils.statusdb.StatusdbSession to avoid actual DB connections
 @pytest.fixture(autouse=True)
 def mock_statusdbsession(monkeypatch):
     class MockStatusdbSession:
@@ -73,10 +100,10 @@ def mock_statusdbsession(monkeypatch):
     monkeypatch.setattr(generic_runs, "StatusdbSession", MockStatusdbSession)
 
 
-# use parameterization for the test fixtures to test confirm_run_type
 @pytest.mark.parametrize(
     "run_fixture, expected_run_type",
     [
+        ("novaseqxplus_testobj", "NovaSeqXPlus"),
         ("nextseq_testobj", "NextSeq"),
         ("miseqseq_testobj", "MiSeq"),
     ],
@@ -94,6 +121,7 @@ def test_confirm_run_type(run_fixture, expected_run_type, request):
 @pytest.mark.parametrize(
     "run_fixture",
     [
+        "novaseqxplus_testobj",
         "nextseq_testobj",
         "miseqseq_testobj",
     ],
@@ -112,6 +140,8 @@ def test_sequencing_ongoing(run_fixture, request):
 @pytest.mark.parametrize(
     "run_fixture, final_sync",
     [
+        ("novaseqxplus_testobj", False),
+        ("novaseqxplus_testobj", True),
         ("nextseq_testobj", False),
         ("nextseq_testobj", True),
         ("miseqseq_testobj", False),
@@ -129,17 +159,62 @@ def test_generate_rsync_command(run_fixture, final_sync, request):
         assert f"; echo $? > {run_obj.final_rsync_exitcode_file}" in rsync_command
 
 
-def test_initiate_background_transfer():
-    pass  # Further tests can be implemented for initiate_background_transfer
+@pytest.mark.parametrize(
+    "run_fixture, rsync_running, final",
+    [
+        ("novaseqxplus_testobj", False, False),
+        ("novaseqxplus_testobj", True, False),
+        ("novaseqxplus_testobj", False, True),
+        ("novaseqxplus_testobj", True, True),
+        ("nextseq_testobj", False, False),
+        ("nextseq_testobj", True, False),
+        ("nextseq_testobj", False, True),
+        ("nextseq_testobj", True, True),
+        ("miseqseq_testobj", False, False),
+        ("miseqseq_testobj", True, False),
+        ("miseqseq_testobj", False, True),
+        ("miseqseq_testobj", True, True),
+    ],
+)
+def test_start_transfer(run_fixture, rsync_running, final, request, monkeypatch):
+    run_obj = request.getfixturevalue(run_fixture)
 
+    def mock_rsync_is_running(src):
+        return rsync_running
 
-def test_do_final_transfer():
-    pass  # Further tests can be implemented for do_final_transfer
+    def mock_submit_background_process(command_str):
+        mock_submit_background_process.called = True
+        mock_submit_background_process.command_str = command_str
+
+    def mock_update_statusdb(status, additional_info=None):
+        mock_update_statusdb.called = True
+        mock_update_statusdb.status = status
+
+    monkeypatch.setattr(generic_runs.fs, "rsync_is_running", mock_rsync_is_running)
+    monkeypatch.setattr(
+        generic_runs.fs, "submit_background_process", mock_submit_background_process
+    )
+    monkeypatch.setattr(run_obj, "update_statusdb", mock_update_statusdb)
+
+    run_obj.start_transfer(final=final)
+
+    if rsync_running:
+        assert not hasattr(mock_submit_background_process, "called")
+    else:
+        assert hasattr(mock_submit_background_process, "called")
+        assert "rsync" in mock_submit_background_process.command_str
+        assert hasattr(mock_update_statusdb, "called")
+        if final:
+            assert mock_update_statusdb.status == "final_transfer_started"
+        else:
+            assert mock_update_statusdb.status == "transfer_started"
 
 
 @pytest.mark.parametrize(
     "run_fixture, sync_successful",
     [
+        ("novaseqxplus_testobj", True),
+        ("novaseqxplus_testobj", False),
         ("nextseq_testobj", True),
         ("nextseq_testobj", False),
         ("miseqseq_testobj", True),
@@ -159,10 +234,13 @@ def test_final_sync_successful(run_fixture, sync_successful, request):
     assert run_obj.final_sync_successful == sync_successful
 
 
-# use fixtures to test Run.has_status for differernt illumina_runs objects
 @pytest.mark.parametrize(
     "run_fixture, status_to_check, expected_result",
     [
+        ("novaseqxplus_testobj", "sequencing_started", False),
+        ("novaseqxplus_testobj", "sequencing_started", True),
+        ("novaseqxplus_testobj", "sequencing_finished", False),
+        ("novaseqxplus_testobj", "sequencing_finished", True),
         ("nextseq_testobj", "sequencing_started", False),
         ("nextseq_testobj", "sequencing_started", True),
         ("nextseq_testobj", "sequencing_finished", False),
@@ -185,3 +263,62 @@ def test_has_status(run_fixture, status_to_check, expected_result, request):
 
     run_obj.db = MockDB()
     assert run_obj.has_status(status_to_check) == expected_result
+
+
+@pytest.mark.parametrize(
+    "run_fixture, existing_statuses, status_to_update",
+    [
+        (
+            "nextseq_testobj",
+            [],
+            "sequencing_started",
+        ),
+        (
+            "nextseq_testobj",
+            [{"event_type": "sequencing_started"}],
+            "transfer_started",
+        ),
+        (
+            "miseqseq_testobj",
+            [],
+            "sequencing_started",
+        ),
+        (
+            "miseqseq_testobj",
+            [{"event_type": "sequencing_started"}],
+            "transfer_started",
+        ),
+    ],
+)
+def test_update_statusdb(
+    run_fixture,
+    existing_statuses,
+    status_to_update,
+    request,
+):
+    run_obj = request.getfixturevalue(run_fixture)
+
+    class MockDB:
+        def __init__(self):
+            self.updated_doc = None
+
+        def get_db_doc(self, ddoc, view, run_id):
+            return {"events": existing_statuses, "files": {}}
+
+        def update_db_doc(self, doc):
+            self.updated_doc = doc
+
+    import dataflow_transfer.utils.filesystem as fs
+
+    def mock_locate_metadata(metadata_list, run_dir):
+        return []
+
+    def mock_parse_metadata_files(files):
+        return {}
+
+    fs.locate_metadata = mock_locate_metadata
+    fs.parse_metadata_files = mock_parse_metadata_files
+    mock_db = MockDB()
+    run_obj.db = mock_db
+    run_obj.update_statusdb(status=status_to_update)
+    assert mock_db.updated_doc["events"][-1]["event_type"] == status_to_update

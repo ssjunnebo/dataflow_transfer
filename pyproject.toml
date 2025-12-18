@@ -1,6 +1,26 @@
+[tool.ruff.lint]
+select = [
+    #         Ruff default rules
+    # ------------------------------
+    "E4", # pycodestyle Imports
+    "E7", # pycodestyle Statements
+    "E9", # pycodestyle Runtime
+    "F",  # Pyflakes
+
+    #         Additional    Comment
+    # ------------------------------------------------------
+    "I",  # isort         Best-practice sorting of imports
+    "UP", # pyupgrade     Make sure syntax is up-to-date
+]
+ignore = [
+    "E402", # Module level import not at top of file
+    "E722", # Do not use bare 'except'
+    "E741", # Ambiguous variable name
+]
+
 [project]
 name = "dataflow_transfer"
-version = "1.0.2"
+version = "1.0.3"
 description = "Script for transferring sequencing data from sequencers to storage"
 authors = [
     { name = "Sara Sjunnebo", email = "sara.sjunnebo@scilifelab.se" },
@@ -20,6 +40,7 @@ dependencies = [
 dev = [
     "ruff>=0.11.8",
     "pytest",
+    "pytest-cov",
 ]
 
 [project.scripts]

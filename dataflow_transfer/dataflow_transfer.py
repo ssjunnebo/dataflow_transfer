@@ -22,8 +22,9 @@ def process_run(run_dir, sequencer, config):
     run.confirm_run_type()
 
     ## Transfer already completed. Do nothing.
-    if run.final_sync_successful:
-        # Removing the exit code file lets the run retry transfer
+    if run.final_sync_successful and run.has_status("transferred_to_hpc"):
+        # Check transfer success both in statusdb and via exit code file
+        # To restart transfer, remove the exit code file
         logger.info(f"Transfer of {run_dir} is finished. No action needed.")
         return
 

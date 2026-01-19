@@ -49,3 +49,16 @@ class MiSeqRun(IlluminaRun):
             "^\d{6}_[A-Z0-9]+_\d{4}_[A-Z0-9\-]+$"  # 251015_M01548_0646_000000000-M6D7K
         )
         super().__init__(run_dir, configuration)
+
+
+@register_run_class
+class MiSeqi100Run(IlluminaRun):
+    """Defines a MiSeqi100 sequencing run"""
+
+    run_type = "MiSeqi100"
+
+    def __init__(self, run_dir, configuration):
+        self.run_id_format = (
+            "^\d{6}_[A-Z0-9]+_\d{4}_[A-Z0-9\-]+$"  # TODO: Need to update this
+        )
+        super().__init__(run_dir, configuration)

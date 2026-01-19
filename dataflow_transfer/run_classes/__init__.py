@@ -5,6 +5,7 @@ from dataflow_transfer.run_classes.illumina_runs import (
     MiSeqRun,  # noqa: F401
     NextSeqRun,  # noqa: F401
     NovaSeqXPlusRun,  # noqa: F401
+    MiSeqi100Run,  # noqa: F401
 )
 from dataflow_transfer.run_classes.ont_runs import MinIONRun, PromethIONRun  # noqa: F401
 

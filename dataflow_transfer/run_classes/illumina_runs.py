@@ -58,7 +58,5 @@ class MiSeqi100Run(IlluminaRun):
     run_type = "MiSeqi100"
 
     def __init__(self, run_dir, configuration):
-        self.run_id_format = (
-            r"^\d{6}_[A-Z0-9]+_\d{4}_[A-Z0-9\-]+$"  # TODO: Need to update this
-        )
+        self.run_id_format = r"^\d{8}_[A-Z0-9]+_\d{4}_[A-Z0-9]+-[A-Z0-9]+$"  # 20260128_SH01140_0002_ASC2150561-SC3
         super().__init__(run_dir, configuration)

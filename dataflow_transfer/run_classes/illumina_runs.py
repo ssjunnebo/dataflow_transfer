@@ -20,7 +20,7 @@ class NovaSeqXPlusRun(IlluminaRun):
 
     def __init__(self, run_dir, configuration):
         self.run_id_format = (
-            "^\d{8}_[A-Z0-9]+_\d{4}_[A-Z0-9]+$"  # 20251010_LH00202_0284_B22CVHTLT1
+            r"^\d{8}_[A-Z0-9]+_\d{4}_[A-Z0-9]+$"  # 20251010_LH00202_0284_B22CVHTLT1
         )
         super().__init__(run_dir, configuration)
 
@@ -33,7 +33,7 @@ class NextSeqRun(IlluminaRun):
 
     def __init__(self, run_dir, configuration):
         self.run_id_format = (
-            "^\d{6}_[A-Z0-9]+_\d{3}_[A-Z0-9]+$"  # 251015_VH00203_572_AAHFHCCM5
+            r"^\d{6}_[A-Z0-9]+_\d{3}_[A-Z0-9]+$"  # 251015_VH00203_572_AAHFHCCM5
         )
         super().__init__(run_dir, configuration)
 
@@ -46,6 +46,17 @@ class MiSeqRun(IlluminaRun):
 
     def __init__(self, run_dir, configuration):
         self.run_id_format = (
-            "^\d{6}_[A-Z0-9]+_\d{4}_[A-Z0-9\-]+$"  # 251015_M01548_0646_000000000-M6D7K
+            r"^\d{6}_[A-Z0-9]+_\d{4}_[A-Z0-9\-]+$"  # 251015_M01548_0646_000000000-M6D7K
         )
+        super().__init__(run_dir, configuration)
+
+
+@register_run_class
+class MiSeqi100Run(IlluminaRun):
+    """Defines a MiSeqi100 sequencing run"""
+
+    run_type = "MiSeqi100"
+
+    def __init__(self, run_dir, configuration):
+        self.run_id_format = r"^\d{8}_[A-Z0-9]+_\d{4}_[A-Z0-9]{10}-SC3$"  # 20260128_SH01140_0002_ASC2150561-SC3
         super().__init__(run_dir, configuration)

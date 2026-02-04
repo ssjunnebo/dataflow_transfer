@@ -85,6 +85,32 @@ def miseqseq_testobj(tmp_path):
     return illumina_runs.MiSeqRun(str(run_dir), config)
 
 
+@pytest.fixture
+def miseqseqi100_testobj(tmp_path):
+    config = {
+        "log": {"file": "test.log"},
+        "transfer_details": {"user": "testuser", "host": "testhost"},
+        "statusdb": {
+            "username": "dbuser",
+            "password": "dbpass",
+            "url:": "dburl",
+            "database": "dbname",
+        },
+        "sequencers": {
+            "MiSeqi100": {
+                "miarka_destination": "/data/MiSeqi100",
+                "metadata_for_statusdb": ["RunInfo.xml", "RunParameters.xml"],
+                "ignore_folders": ["nosync"],
+                "rsync_options": ["--chmod=Dg+s,g+rw"],
+            }
+        },
+    }
+    run_id = "20260128_SH01140_0002_ASC2150561-SC3"
+    run_dir = tmp_path / run_id
+    run_dir.mkdir()
+    return illumina_runs.MiSeqi100Run(str(run_dir), config)
+
+
 @pytest.fixture(autouse=True)
 def mock_statusdbsession(monkeypatch):
     class MockStatusdbSession:
@@ -106,6 +132,7 @@ def mock_statusdbsession(monkeypatch):
         ("novaseqxplus_testobj", "NovaSeqXPlus"),
         ("nextseq_testobj", "NextSeq"),
         ("miseqseq_testobj", "MiSeq"),
+        ("miseqseqi100_testobj", "MiSeqi100"),
     ],
 )
 def test_confirm_run_type(run_fixture, expected_run_type, request):
@@ -124,6 +151,7 @@ def test_confirm_run_type(run_fixture, expected_run_type, request):
         "novaseqxplus_testobj",
         "nextseq_testobj",
         "miseqseq_testobj",
+        "miseqseqi100_testobj",
     ],
 )
 def test_sequencing_ongoing(run_fixture, request):
@@ -146,6 +174,8 @@ def test_sequencing_ongoing(run_fixture, request):
         ("nextseq_testobj", True),
         ("miseqseq_testobj", False),
         ("miseqseq_testobj", True),
+        ("miseqseqi100_testobj", False),
+        ("miseqseqi100_testobj", True),
     ],
 )
 def test_generate_rsync_command(run_fixture, final_sync, request):
@@ -174,6 +204,10 @@ def test_generate_rsync_command(run_fixture, final_sync, request):
         ("miseqseq_testobj", True, False),
         ("miseqseq_testobj", False, True),
         ("miseqseq_testobj", True, True),
+        ("miseqseqi100_testobj", False, False),
+        ("miseqseqi100_testobj", True, False),
+        ("miseqseqi100_testobj", False, True),
+        ("miseqseqi100_testobj", True, True),
     ],
 )
 def test_start_transfer(run_fixture, rsync_running, final, request, monkeypatch):
@@ -219,6 +253,8 @@ def test_start_transfer(run_fixture, rsync_running, final, request, monkeypatch)
         ("nextseq_testobj", False),
         ("miseqseq_testobj", True),
         ("miseqseq_testobj", False),
+        ("miseqseqi100_testobj", True),
+        ("miseqseqi100_testobj", False),
     ],
 )
 def test_final_sync_successful(run_fixture, sync_successful, request):
@@ -249,6 +285,10 @@ def test_final_sync_successful(run_fixture, sync_successful, request):
         ("miseqseq_testobj", "sequencing_started", True),
         ("miseqseq_testobj", "sequencing_finished", False),
         ("miseqseq_testobj", "sequencing_finished", True),
+        ("miseqseqi100_testobj", "sequencing_started", False),
+        ("miseqseqi100_testobj", "sequencing_started", True),
+        ("miseqseqi100_testobj", "sequencing_finished", False),
+        ("miseqseqi100_testobj", "sequencing_finished", True),
     ],
 )
 def test_has_status(run_fixture, status_to_check, expected_result, request):
@@ -268,6 +308,12 @@ def test_has_status(run_fixture, status_to_check, expected_result, request):
 @pytest.mark.parametrize(
     "run_fixture, existing_statuses, status_to_update",
     [
+        ("novaseqxplus_testobj", [], "sequencing_started"),
+        (
+            "novaseqxplus_testobj",
+            [{"event_type": "sequencing_started"}],
+            "transfer_started",
+        ),
         (
             "nextseq_testobj",
             [],
@@ -285,6 +331,16 @@ def test_has_status(run_fixture, status_to_check, expected_result, request):
         ),
         (
             "miseqseq_testobj",
+            [{"event_type": "sequencing_started"}],
+            "transfer_started",
+        ),
+        (
+            "miseqseqi100_testobj",
+            [],
+            "sequencing_started",
+        ),
+        (
+            "miseqseqi100_testobj",
             [{"event_type": "sequencing_started"}],
             "transfer_started",
         ),

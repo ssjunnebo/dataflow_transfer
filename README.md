@@ -109,38 +109,28 @@ sequencers:
 
 ## How It Works
 
-### Run Processing Pipeline
-
 1. **Discovery**: Scans configured sequencing directories for run folders
 2. **Validation**: Confirms run ID matches expected format for the sequencer type
 3. **Transfer Phases**:
-   - **Sequencing Phase**: Starts continuous background rsync transfer while sequencing is ongoing (when the final sequencing file doesn't exist). Uploads status and metadata files (`metadata_for_statusdb`) to database.
+   - **Sequencing Phase**: Starts continuous background rsync transfer while sequencing is ongoing (when the final sequencing file doesn't exist). Uploads status and metadata files (specified for each sequencer type in the config with `metadata_for_statusdb`) to database.
    - **Final Transfer**: After sequencing completes (final sequencing file appears), initiates final rsync transfer and captures exit code.
-   - **Completion**: Updates database when transfer succeeds.
+   - **Completion**: Updates database when transfer was successful.
 
 ### Status Tracking
 
 Run status is tracked in CouchDB with events including:
 
-**Status:** `sequencing_started`
-**Meaning:** Sequencing is ongoing
-**Occurs when:** A run folder exists but the final sequencing file has not been created yet
+| Status                   | Meaning                             | Occurs when                                                                                                                                                      |
+| ------------------------ | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sequencing_started`     | Sequencing is ongoing               | A run folder exists but the final sequencing file has not been created yet                                                                                       |
+| `transfer_started`       | Intermediate transfer was initiated | Sequencing is ongoing and an rsync has been started                                                                                                              |
+| `sequencing_finished`    | Sequencing has completed            | A run folder exists and the final sequencing file has been created                                                                                               |
+| `final_transfer_started` | Final sync has started              | A run folder exists and the final sequencing file has been created, but the final rsync exit code file has not yet been created or contains a non-zero exit code |
+| `transferred_to_hpc`     | Transfer completed successfully     | A run folder exists, the final sequencing file has been created, and the final rsync exit code file contains a 0 exit code                                       |
 
-**Status:** `transfer_started`
-**Meaning:** Intermediate transfer was initiated
-**Occurs when:** A run folder exists but the final sequencing file has not been created yet.
+### Flow chart
 
-**Status:** `sequencing_finished`
-**Meaning:** Sequencing has completed
-**Occurs when:** A run folder exists and the final sequencing file has been created
-
-**Status:** `final_transfer_started`
-**Meaning:** Final sync has started
-**Occurs when:** A run folder exists and the final sequencing file has been created, but the final rsync exit code file has not yet been created or contains a non-zero exit code
-
-**Status:** `transferred_to_hpc`
-**Meaning:** Transfer completed successfully
-**Occurs when:** A run folder exists, the final sequencing file has been created, and the final rsync exit code file contains a 0 exit code
+![Flow chart for Dataflow transfer](/docs/Dataflow_Transfer_flowchart.svg)
 
 ### Key Components
 
@@ -161,13 +151,8 @@ Run status is tracked in CouchDB with events including:
 
 The logic of the script relies on the following status files:
 
-- run.final_file
-  - The final file written by each sequencing machine. Used to indicate when the sequencing has completed.
-- final_rsync_exitcode - Used to indicate when the final rsync is done, so that the final rsync can be run in the background. This is especially useful for restarts after long pauses of the cronjob.
-
-### Flow chart
-
-![Flow chart for Dataflow transfer](/docs/Dataflow_Transfer_flowchart.svg)
+- `run.final_file` - The final file written by each sequencing machine. Used to indicate when the sequencing has completed.
+- `final_rsync_exitcode` - Used to indicate when the final rsync is done, so that the final rsync can be run in the background. This is especially useful for restarts after long pauses of the cronjob.
 
 ## Development
 
@@ -209,9 +194,9 @@ dataflow_transfer/
 To add support for a new sequencer, add the following to dataflow_transfer:
 
 1. Add a new class for the sequencer in one of the run classes files below. Make sure it inherits from the manufacturer class (IlluminaRun, ElementRun, ONTRun)
-   a. `dataflow_transfer/run_classes/illumina_runs.py`
-   b. `dataflow_transfer/run_classes/element_runs.py`
-   c. `dataflow_transfer/run_classes/ont_runs.py`
+   - `dataflow_transfer/run_classes/illumina_runs.py`
+   - `dataflow_transfer/run_classes/element_runs.py`
+   - `dataflow_transfer/run_classes/ont_runs.py`
 2. Import the new class in `dataflow_transfer/run_classes/__init__.py`
 3. Add a test fixture for the new run in `dataflow_transfer/tests/test_run_classes.py` and include it in the relevant tests
 4. Add a section for the sequencer in the config file

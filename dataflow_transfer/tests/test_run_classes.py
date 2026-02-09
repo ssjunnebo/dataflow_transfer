@@ -12,6 +12,7 @@ def novaseqxplus_testobj(tmp_path):
     config = {
         "log": {"file": "test.log"},
         "transfer_details": {"user": "testuser", "host": "testhost"},
+        "metadata_archive": "/data/metadata_archive",
         "statusdb": {
             "username": "dbuser",
             "password": "dbpass",
@@ -23,7 +24,12 @@ def novaseqxplus_testobj(tmp_path):
                 "miarka_destination": "/data/NovaSeqXPlus",
                 "metadata_for_statusdb": ["RunInfo.xml", "RunParameters.xml"],
                 "ignore_folders": ["nosync"],
-                "rsync_options": ["--chmod=Dg+s,g+rw"],
+                "remote_rsync_options": ["--chmod=Dg+s,g+rw"],
+                "metadata_rsync_options": [
+                    "--include=RunInfo.xml",
+                    "--include=RunParameters.xml",
+                    "--exclude=*",
+                ],
             }
         },
     }
@@ -38,6 +44,7 @@ def nextseq_testobj(tmp_path):
     config = {
         "log": {"file": "test.log"},
         "transfer_details": {"user": "testuser", "host": "testhost"},
+        "metadata_archive": "/data/metadata_archive",
         "statusdb": {
             "username": "dbuser",
             "password": "dbpass",
@@ -49,7 +56,12 @@ def nextseq_testobj(tmp_path):
                 "miarka_destination": "/data/NextSeq",
                 "metadata_for_statusdb": ["RunInfo.xml", "RunParameters.xml"],
                 "ignore_folders": ["nosync"],
-                "rsync_options": ["--chmod=Dg+s,g+rw"],
+                "remote_rsync_options": ["--chmod=Dg+s,g+rw"],
+                "metadata_rsync_options": [
+                    "--include=RunInfo.xml",
+                    "--include=RunParameters.xml",
+                    "--exclude=*",
+                ],
             }
         },
     }
@@ -64,6 +76,7 @@ def miseqseq_testobj(tmp_path):
     config = {
         "log": {"file": "test.log"},
         "transfer_details": {"user": "testuser", "host": "testhost"},
+        "metadata_archive": "/data/metadata_archive",
         "statusdb": {
             "username": "dbuser",
             "password": "dbpass",
@@ -75,7 +88,12 @@ def miseqseq_testobj(tmp_path):
                 "miarka_destination": "/data/MiSeq",
                 "metadata_for_statusdb": ["RunInfo.xml", "RunParameters.xml"],
                 "ignore_folders": ["nosync"],
-                "rsync_options": ["--chmod=Dg+s,g+rw"],
+                "remote_rsync_options": ["--chmod=Dg+s,g+rw"],
+                "metadata_rsync_options": [
+                    "--include=RunInfo.xml",
+                    "--include=RunParameters.xml",
+                    "--exclude=*",
+                ],
             }
         },
     }
@@ -90,6 +108,7 @@ def miseqseqi100_testobj(tmp_path):
     config = {
         "log": {"file": "test.log"},
         "transfer_details": {"user": "testuser", "host": "testhost"},
+        "metadata_archive": "/data/metadata_archive",
         "statusdb": {
             "username": "dbuser",
             "password": "dbpass",
@@ -101,7 +120,12 @@ def miseqseqi100_testobj(tmp_path):
                 "miarka_destination": "/data/MiSeqi100",
                 "metadata_for_statusdb": ["RunInfo.xml", "RunParameters.xml"],
                 "ignore_folders": ["nosync"],
-                "rsync_options": ["--chmod=Dg+s,g+rw"],
+                "remote_rsync_options": ["--chmod=Dg+s,g+rw"],
+                "metadata_rsync_options": [
+                    "--include=RunInfo.xml",
+                    "--include=RunParameters.xml",
+                    "--exclude=*",
+                ],
             }
         },
     }
@@ -166,27 +190,32 @@ def test_sequencing_ongoing(run_fixture, request):
 
 
 @pytest.mark.parametrize(
-    "run_fixture, final_sync",
+    "run_fixture, remote, with_exit_code_file",
     [
-        ("novaseqxplus_testobj", False),
-        ("novaseqxplus_testobj", True),
-        ("nextseq_testobj", False),
-        ("nextseq_testobj", True),
-        ("miseqseq_testobj", False),
-        ("miseqseq_testobj", True),
-        ("miseqseqi100_testobj", False),
-        ("miseqseqi100_testobj", True),
+        ("novaseqxplus_testobj", False, True),
+        ("novaseqxplus_testobj", True, False),
+        ("novaseqxplus_testobj", True, True),
+        ("nextseq_testobj", False, True),
+        ("nextseq_testobj", True, False),
+        ("nextseq_testobj", True, True),
+        ("miseqseq_testobj", False, True),
+        ("miseqseq_testobj", True, False),
+        ("miseqseq_testobj", True, True),
+        ("miseqseqi100_testobj", False, True),
+        ("miseqseqi100_testobj", True, False),
+        ("miseqseqi100_testobj", True, True),
     ],
 )
-def test_generate_rsync_command(run_fixture, final_sync, request):
+def test_generate_rsync_command(run_fixture, remote, with_exit_code_file, request):
     run_obj = request.getfixturevalue(run_fixture)
-    rsync_command = run_obj.generate_rsync_command(is_final_sync=final_sync)
+    rsync_command = run_obj.generate_rsync_command(
+        remote=remote, with_exit_code_file=with_exit_code_file
+    )
     assert "run-one rsync" in rsync_command
     assert "--log-file=" in rsync_command
-    assert "--chmod=Dg+s,g+rw" in rsync_command
     assert run_obj.run_dir in rsync_command
-    if final_sync:
-        assert f"; echo $? > {run_obj.final_rsync_exitcode_file}" in rsync_command
+    if with_exit_code_file:
+        assert "; echo $? >" in rsync_command
 
 
 @pytest.mark.parametrize(
@@ -213,7 +242,7 @@ def test_generate_rsync_command(run_fixture, final_sync, request):
 def test_start_transfer(run_fixture, rsync_running, final, request, monkeypatch):
     run_obj = request.getfixturevalue(run_fixture)
 
-    def mock_rsync_is_running(src):
+    def mock_rsync_is_running(src, dst):
         return rsync_running
 
     def mock_submit_background_process(command_str):
@@ -268,6 +297,66 @@ def test_final_sync_successful(run_fixture, sync_successful, request):
         with open(run_obj.final_rsync_exitcode_file, "w") as f:
             f.write("1")
     assert run_obj.final_sync_successful == sync_successful
+
+
+@pytest.mark.parametrize(
+    "run_fixture, sync_successful",
+    [
+        ("novaseqxplus_testobj", True),
+        ("novaseqxplus_testobj", False),
+        ("nextseq_testobj", True),
+        ("nextseq_testobj", False),
+        ("miseqseq_testobj", True),
+        ("miseqseq_testobj", False),
+        ("miseqseqi100_testobj", True),
+        ("miseqseqi100_testobj", False),
+    ],
+)
+def test_metadata_synced(run_fixture, sync_successful, request):
+    run_obj = request.getfixturevalue(run_fixture)
+    if sync_successful:
+        # Create the final rsync exit code file with a success code
+        with open(run_obj.metadata_rsync_exitcode_file, "w") as f:
+            f.write("0")
+    else:
+        # Create the final rsync exit code file with a failure code
+        with open(run_obj.metadata_rsync_exitcode_file, "w") as f:
+            f.write("1")
+    assert run_obj.metadata_synced == sync_successful
+
+
+@pytest.mark.parametrize(
+    "run_fixture",
+    [
+        "novaseqxplus_testobj",
+        "nextseq_testobj",
+        "miseqseq_testobj",
+        "miseqseqi100_testobj",
+    ],
+)
+def test_sync_metadata(run_fixture, request, monkeypatch):
+    run_obj = request.getfixturevalue(run_fixture)
+
+    def mock_generate_rsync_command(remote, with_exit_code_file):
+        return "rsync command"
+
+    def mock_rsync_is_running(src, dst):
+        return False
+
+    def mock_submit_background_process(command_str):
+        mock_submit_background_process.called = True
+        mock_submit_background_process.command_str = command_str
+
+    monkeypatch.setattr(run_obj, "generate_rsync_command", mock_generate_rsync_command)
+    monkeypatch.setattr(generic_runs.fs, "rsync_is_running", mock_rsync_is_running)
+    monkeypatch.setattr(
+        generic_runs.fs, "submit_background_process", mock_submit_background_process
+    )
+
+    run_obj.sync_metadata()
+
+    assert hasattr(mock_submit_background_process, "called")
+    assert mock_submit_background_process.command_str == "rsync command"
 
 
 @pytest.mark.parametrize(

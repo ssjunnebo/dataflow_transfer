@@ -79,6 +79,7 @@ class Run:
     def generate_rsync_command(self, remote=False, with_exit_code_file=False):
         """Generate an rsync command string."""
         if remote:
+            source = self.run_dir
             destination = (
                 self.transfer_details.get("user")
                 + "@"
@@ -92,7 +93,8 @@ class Run:
             rsync_options = self.sequencer_config.get("remote_rsync_options", [])
             exit_code_file = self.final_rsync_exitcode_file
         else:
-            destination = self.metadata_destination
+            source = self.run_dir + "/"
+            destination = self.metadata_destination + "/"
             log_file_option = "--log-file=" + os.path.join(
                 self.run_dir, "rsync_metadata_log.txt"
             )
@@ -105,8 +107,8 @@ class Run:
             "-au",
             log_file_option,
             *(rsync_options),
-            self.run_dir + "/",
-            destination + "/",
+            source,
+            destination,
         ]
         command_str = " ".join(command)
         if with_exit_code_file:

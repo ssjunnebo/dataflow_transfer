@@ -20,7 +20,7 @@ ignore = [
 
 [project]
 name = "dataflow_transfer"
-version = "1.0.5"
+version = "1.1.0"
 description = "Script for transferring sequencing data from sequencers to storage"
 authors = [
     { name = "Sara Sjunnebo", email = "sara.sjunnebo@scilifelab.se" },

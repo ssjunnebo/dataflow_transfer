@@ -83,6 +83,8 @@ log:
 
 run_one_path: /usr/bin/run-one
 
+metadata_archive: /path/to/metadata/archive
+
 transfer_details:
   user: username
   host: remote.host.com
@@ -102,8 +104,11 @@ sequencers:
       - RunParameters.xml
     ignore_folders:
       - nosync
-    rsync_options:
+    remote_rsync_options:
       - --chmod=Dg+s,g+rw
+    metadata_rsync_options:
+      - "--exclude='*'"
+      - "--include=InterOp"
   # ... additional sequencer configurations
 ```
 
@@ -113,7 +118,7 @@ sequencers:
 2. **Validation**: Confirms run ID matches expected format for the sequencer type
 3. **Transfer Phases**:
    - **Sequencing Phase**: Starts continuous background rsync transfer while sequencing is ongoing (when the final sequencing file doesn't exist). Uploads status and metadata files (specified for each sequencer type in the config with `metadata_for_statusdb`) to database.
-   - **Final Transfer**: After sequencing completes (final sequencing file appears), initiates final rsync transfer and captures exit code.
+   - **Final Transfer**: After sequencing completes (final sequencing file appears), syncs specified metadata file to archive location, initiates final rsync transfer and captures exit codes.
    - **Completion**: Updates database when transfer was successful.
 
 ### Status Tracking
@@ -145,14 +150,15 @@ Run status is tracked in CouchDB with events including:
 - Final completion is indicated by the presence of a sequencer-specific final file (e.g., `RTAComplete.txt` for Illumina)
 - Remote storage is accessible via rsync over SSH
 - CouchDB is accessible and the database exists
-- Metadata files (e.g., RunInfo.xml) are present in run directories for status database updates
+- Metadata files (e.g., RunInfo.xml) are present in run directories for status database updates and sync to metadata archive location
 
 ### Status Files
 
 The logic of the script relies on the following status files:
 
 - `run.final_file` - The final file written by each sequencing machine. Used to indicate when the sequencing has completed.
-- `final_rsync_exitcode` - Used to indicate when the final rsync is done, so that the final rsync can be run in the background. This is especially useful for restarts after long pauses of the cronjob.
+- `.final_rsync_exitcode` - Used to indicate when the final rsync is done, so that the final rsync can be run in the background. This is especially useful for restarts after long pauses of the cronjob.
+- `.metadata_rsync_exitcode` - Used to indicate when rsync of metadata to the metadata archive is done, so that the rsync can be run in the background. This is useful when there are I/O issue with the disks.
 
 ## Development
 

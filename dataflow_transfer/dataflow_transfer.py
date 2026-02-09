@@ -34,6 +34,11 @@ def process_run(run_dir, sequencer, config):
         run.start_transfer(final=False)
         return
 
+    ## Sequencing finished. Copy metadata in the background if not already done.
+    if run.has_status("sequencing_finished"):
+        if not run.metadata_synced:
+            run.sync_metadata()
+
     ## Sequencing finished but transfer not complete. Start final transfer.
     if not run.final_sync_successful:
         if run.has_status("sequencing_finished"):

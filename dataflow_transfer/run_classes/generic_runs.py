@@ -57,9 +57,6 @@ class Run:
 
     def sync_metadata(self):
         """Start background rsync transfer for metadata files."""
-        # make metadata destination path if it doesn't exist
-        if not os.path.exists(self.metadata_destination):
-            os.makedirs(self.metadata_destination)
         metadata_rsync_command = self.generate_rsync_command(
             remote=False, with_exit_code_file=True
         )
@@ -108,8 +105,8 @@ class Run:
             "-au",
             log_file_option,
             *(rsync_options),
-            self.run_dir,
-            destination,
+            self.run_dir + "/",
+            destination + "/",
         ]
         command_str = " ".join(command)
         if with_exit_code_file:

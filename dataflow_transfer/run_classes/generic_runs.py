@@ -107,6 +107,7 @@ class Run:
             "-au",
             log_file_option,
             *(rsync_options),
+            "--exclude='*'" if not remote else "",
             source,
             destination,
         ]

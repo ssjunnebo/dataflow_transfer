@@ -107,7 +107,6 @@ sequencers:
     remote_rsync_options:
       - --chmod=Dg+s,g+rw
     metadata_rsync_options:
-      - "--exclude='*'"
       - "--include=InterOp"
   # ... additional sequencer configurations
 ```

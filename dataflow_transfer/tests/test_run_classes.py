@@ -190,26 +190,28 @@ def test_sequencing_ongoing(run_fixture, request):
 
 
 @pytest.mark.parametrize(
-    "run_fixture, remote, with_exit_code_file",
+    "run_fixture, metadata_only, with_exit_code_file",
     [
         ("novaseqxplus_testobj", False, True),
-        ("novaseqxplus_testobj", True, False),
+        ("novaseqxplus_testobj", False, False),
         ("novaseqxplus_testobj", True, True),
         ("nextseq_testobj", False, True),
-        ("nextseq_testobj", True, False),
+        ("nextseq_testobj", False, False),
         ("nextseq_testobj", True, True),
         ("miseqseq_testobj", False, True),
-        ("miseqseq_testobj", True, False),
+        ("miseqseq_testobj", False, False),
         ("miseqseq_testobj", True, True),
         ("miseqseqi100_testobj", False, True),
-        ("miseqseqi100_testobj", True, False),
+        ("miseqseqi100_testobj", False, False),
         ("miseqseqi100_testobj", True, True),
     ],
 )
-def test_generate_rsync_command(run_fixture, remote, with_exit_code_file, request):
+def test_generate_rsync_command(
+    run_fixture, metadata_only, with_exit_code_file, request
+):
     run_obj = request.getfixturevalue(run_fixture)
     rsync_command = run_obj.generate_rsync_command(
-        remote=remote, with_exit_code_file=with_exit_code_file
+        metadata_only=metadata_only, with_exit_code_file=with_exit_code_file
     )
     assert "run-one rsync" in rsync_command
     assert "--log-file=" in rsync_command
@@ -337,7 +339,7 @@ def test_metadata_synced(run_fixture, sync_successful, request):
 def test_sync_metadata(run_fixture, request, monkeypatch):
     run_obj = request.getfixturevalue(run_fixture)
 
-    def mock_generate_rsync_command(remote, with_exit_code_file):
+    def mock_generate_rsync_command(metadata_only, with_exit_code_file):
         return "rsync command"
 
     def mock_rsync_is_running(src, dst):

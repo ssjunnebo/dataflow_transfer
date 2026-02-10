@@ -58,7 +58,7 @@ class Run:
     def sync_metadata(self):
         """Start background rsync transfer for metadata files."""
         metadata_rsync_command = self.generate_rsync_command(
-            remote=False, with_exit_code_file=True
+            metadata_only=True, with_exit_code_file=True
         )
 
         if fs.rsync_is_running(src=self.run_dir, dst=self.metadata_destination):
@@ -76,9 +76,17 @@ class Run:
             logger.error(f"Failed to start metadata rsync for {self.run_id}: {e}")
             raise e
 
-    def generate_rsync_command(self, remote=False, with_exit_code_file=False):
+    def generate_rsync_command(self, metadata_only=False, with_exit_code_file=False):
         """Generate an rsync command string."""
-        if remote:
+        if metadata_only:
+            source = self.run_dir + "/"
+            destination = self.metadata_destination + "/"
+            log_file_option = "--log-file=" + os.path.join(
+                self.run_dir, "rsync_metadata_log.txt"
+            )
+            rsync_options = self.sequencer_config.get("metadata_rsync_options", [])
+            exit_code_file = self.metadata_rsync_exitcode_file
+        else:
             source = self.run_dir
             destination = (
                 self.transfer_details.get("user")
@@ -92,14 +100,7 @@ class Run:
             )
             rsync_options = self.sequencer_config.get("remote_rsync_options", [])
             exit_code_file = self.final_rsync_exitcode_file
-        else:
-            source = self.run_dir + "/"
-            destination = self.metadata_destination + "/"
-            log_file_option = "--log-file=" + os.path.join(
-                self.run_dir, "rsync_metadata_log.txt"
-            )
-            rsync_options = self.sequencer_config.get("metadata_rsync_options", [])
-            exit_code_file = self.metadata_rsync_exitcode_file
+
         run_one_bin = self.configuration.get("run_one_path", "run-one")
         command = [
             run_one_bin,
@@ -107,7 +108,7 @@ class Run:
             "-au",
             log_file_option,
             *(rsync_options),
-            "--exclude='*'" if not remote else "",
+            "--exclude='*'" if metadata_only else "",
             source,
             destination,
         ]
@@ -119,7 +120,7 @@ class Run:
     def start_transfer(self, final=False):
         """Start background rsync transfer to storage."""
         transfer_command = self.generate_rsync_command(
-            remote=True, with_exit_code_file=final
+            metadata_only=False, with_exit_code_file=final
         )
         if fs.rsync_is_running(src=self.run_dir, dst=self.remote_destination):
             logger.info(

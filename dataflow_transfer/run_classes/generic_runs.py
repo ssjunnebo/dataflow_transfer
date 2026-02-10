@@ -32,7 +32,7 @@ class Run:
         self.final_rsync_exitcode_file = os.path.join(
             self.run_dir, ".final_rsync_exitcode"
         )
-        self.miarka_destination = self.sequencer_config.get("miarka_destination")
+        self.remote_destination = self.sequencer_config.get("remote_destination")
         self.db = StatusdbSession(self.configuration.get("statusdb"))
 
     def confirm_run_type(self):
@@ -85,7 +85,7 @@ class Run:
                 + "@"
                 + self.transfer_details.get("host")
                 + ":"
-                + self.miarka_destination
+                + self.remote_destination
             )
             log_file_option = "--log-file=" + os.path.join(
                 self.run_dir, "rsync_remote_log.txt"
@@ -121,15 +121,15 @@ class Run:
         transfer_command = self.generate_rsync_command(
             remote=True, with_exit_code_file=final
         )
-        if fs.rsync_is_running(src=self.run_dir, dst=self.miarka_destination):
+        if fs.rsync_is_running(src=self.run_dir, dst=self.remote_destination):
             logger.info(
-                f"Rsync is already running for {self.run_dir} to destination {self.miarka_destination}. Skipping background transfer initiation."
+                f"Rsync is already running for {self.run_dir} to destination {self.remote_destination}. Skipping background transfer initiation."
             )
             return
         try:
             fs.submit_background_process(transfer_command)
             logger.info(
-                f"{self.run_id}: Started rsync to {self.miarka_destination}"
+                f"{self.run_id}: Started rsync to {self.remote_destination}"
                 + f" with the following command: '{transfer_command}'"
             )
         except Exception as e:
@@ -137,7 +137,7 @@ class Run:
             raise e
         rsync_info = {
             "command": transfer_command,
-            "destination_path": self.miarka_destination,
+            "destination_path": self.remote_destination,
         }
         if final:
             self.update_statusdb(

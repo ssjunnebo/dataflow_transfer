@@ -98,7 +98,7 @@ statusdb:
 sequencers:
   NovaSeqXPlus:
     sequencing_path: /sequencing/NovaSeqXPlus
-    miarka_destination: /Illumina/NovaSeqXPlus
+    remote_destination: /Illumina/NovaSeqXPlus
     metadata_for_statusdb:
       - RunInfo.xml
       - RunParameters.xml

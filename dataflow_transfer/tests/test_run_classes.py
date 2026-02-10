@@ -21,7 +21,7 @@ def novaseqxplus_testobj(tmp_path):
         },
         "sequencers": {
             "NovaSeqXPlus": {
-                "miarka_destination": "/data/NovaSeqXPlus",
+                "remote_destination": "/data/NovaSeqXPlus",
                 "metadata_for_statusdb": ["RunInfo.xml", "RunParameters.xml"],
                 "ignore_folders": ["nosync"],
                 "remote_rsync_options": ["--chmod=Dg+s,g+rw"],
@@ -53,7 +53,7 @@ def nextseq_testobj(tmp_path):
         },
         "sequencers": {
             "NextSeq": {
-                "miarka_destination": "/data/NextSeq",
+                "remote_destination": "/data/NextSeq",
                 "metadata_for_statusdb": ["RunInfo.xml", "RunParameters.xml"],
                 "ignore_folders": ["nosync"],
                 "remote_rsync_options": ["--chmod=Dg+s,g+rw"],
@@ -85,7 +85,7 @@ def miseqseq_testobj(tmp_path):
         },
         "sequencers": {
             "MiSeq": {
-                "miarka_destination": "/data/MiSeq",
+                "remote_destination": "/data/MiSeq",
                 "metadata_for_statusdb": ["RunInfo.xml", "RunParameters.xml"],
                 "ignore_folders": ["nosync"],
                 "remote_rsync_options": ["--chmod=Dg+s,g+rw"],
@@ -117,7 +117,7 @@ def miseqseqi100_testobj(tmp_path):
         },
         "sequencers": {
             "MiSeqi100": {
-                "miarka_destination": "/data/MiSeqi100",
+                "remote_destination": "/data/MiSeqi100",
                 "metadata_for_statusdb": ["RunInfo.xml", "RunParameters.xml"],
                 "ignore_folders": ["nosync"],
                 "remote_rsync_options": ["--chmod=Dg+s,g+rw"],

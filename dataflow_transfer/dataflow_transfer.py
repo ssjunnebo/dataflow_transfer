@@ -25,7 +25,7 @@ def process_run(run_dir, sequencer, config):
     if (
         run.final_sync_successful
         and run.has_status("transferred_to_hpc")
-        and not run.metadata_synced #TODO: consider the consequences of this
+        and not run.metadata_synced
     ):
         # Check transfer success both in statusdb and via exit code file
         # To restart transfer, remove the exit code file

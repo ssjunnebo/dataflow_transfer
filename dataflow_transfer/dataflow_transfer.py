@@ -42,6 +42,7 @@ def process_run(run_dir, sequencer, config):
     if run.has_status("sequencing_finished"):
         if not run.metadata_synced:
             run.sync_metadata()
+            # We don't return here since metadata sync is somewhat independent of the real data sync.
 
     ## Sequencing finished but transfer not complete. Start final transfer.
     if not run.final_sync_successful:

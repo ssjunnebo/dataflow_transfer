@@ -28,9 +28,9 @@ def find_runs(base_dir, ignore_folders=[]):
     return runs
 
 
-def rsync_is_running(src):
-    """Check if rsync is already running for given src."""
-    pattern = f"rsync.*{src}"
+def rsync_is_running(src, dst):
+    """Check if rsync is already running for given src and destination."""
+    pattern = f"rsync.*{src}.*{dst}"
     try:
         subprocess.check_output(["pgrep", "-f", pattern])
         return True

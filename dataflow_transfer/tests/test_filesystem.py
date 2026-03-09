@@ -69,12 +69,12 @@ class TestRsyncIsRunning:
     @patch("subprocess.check_output")
     def test_rsync_running(self, mock_check_output):
         mock_check_output.return_value = b"12345"
-        assert rsync_is_running("/some/path") is True
+        assert rsync_is_running("/some/path", "/dst/path") is True
 
     @patch("subprocess.check_output")
     def test_rsync_not_running(self, mock_check_output):
         mock_check_output.side_effect = CalledProcessError(1, "pgrep")
-        assert rsync_is_running("/some/path") is False
+        assert rsync_is_running("/some/path", "/dst/path") is False
 
 
 class TestSubmitBackgroundProcess:

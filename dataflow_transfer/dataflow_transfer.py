@@ -22,7 +22,11 @@ def process_run(run_dir, sequencer, config):
     run.confirm_run_type()
 
     ## Transfer already completed. Do nothing.
-    if run.final_sync_successful and run.has_status("transferred_to_hpc"):
+    if (
+        run.final_sync_successful
+        and run.has_status("transferred_to_hpc")
+        and run.metadata_synced
+    ):
         # Check transfer success both in statusdb and via exit code file
         # To restart transfer, remove the exit code file
         logger.info(f"Transfer of {run_dir} is finished. No action needed.")
@@ -33,6 +37,12 @@ def process_run(run_dir, sequencer, config):
         run.update_statusdb(status="sequencing_started")
         run.start_transfer(final=False)
         return
+
+    ## Sequencing finished. Copy metadata in the background if not already done.
+    if run.has_status("sequencing_finished"):
+        if not run.metadata_synced:
+            run.sync_metadata()
+            # We don't return here since metadata sync is somewhat independent of the real data sync.
 
     ## Sequencing finished but transfer not complete. Start final transfer.
     if not run.final_sync_successful:
@@ -47,8 +57,9 @@ def process_run(run_dir, sequencer, config):
 
     ## Final transfer completed successfully. Update statusdb.
     if run.final_sync_successful:
-        logger.info(f"Final transfer completed successfully for {run_dir}.")
-        run.update_statusdb(status="transferred_to_hpc")
+        if not run.has_status("transferred_to_hpc"):
+            logger.info(f"Final transfer completed successfully for {run_dir}.")
+            run.update_statusdb(status="transferred_to_hpc")
         return
 
     ## Unknown status of run. Log error and raise exception.

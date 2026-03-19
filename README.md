@@ -83,8 +83,6 @@ log:
 
 run_one_path: /usr/bin/run-one
 
-metadata_archive: /path/to/metadata/archive
-
 transfer_details:
   user: username
   host: remote.host.com
@@ -99,6 +97,7 @@ sequencers:
   NovaSeqXPlus:
     sequencing_path: /sequencing/NovaSeqXPlus
     remote_destination: /Illumina/NovaSeqXPlus
+    metadata_archive: /path/to/metadata/archive/NovaSeqXPlus_data
     metadata_for_statusdb:
       - RunInfo.xml
       - RunParameters.xml
@@ -150,6 +149,7 @@ Run status is tracked in CouchDB with events including:
 - Remote storage is accessible via rsync over SSH
 - CouchDB is accessible and the database exists
 - Metadata files (e.g., RunInfo.xml) are present in run directories for status database updates and sync to metadata archive location
+- The flowcell ID is set to correspond to the ID that is scanned with a barcode scanner during sequencing setup in the lab
 
 ### Status Files
 

@@ -9,6 +9,7 @@ class IlluminaRun(Run):
     def __init__(self, run_dir, configuration):
         super().__init__(run_dir, configuration)
         self.final_file = "CopyComplete.txt"
+        self.flowcell_id = self.run_id.split("_")[-1]
 
 
 @register_run_class
@@ -36,7 +37,6 @@ class NextSeqRun(IlluminaRun):
             r"^\d{6}_[A-Z0-9]+_\d{3}_[A-Z0-9]+$"  # 251015_VH00203_572_AAHFHCCM5
         )
         super().__init__(run_dir, configuration)
-        self.flowcell_id = self.run_id.split("_")[-1]  # AAHFHCCM5
 
 
 @register_run_class
@@ -50,7 +50,6 @@ class MiSeqRun(IlluminaRun):
             r"^\d{6}_[A-Z0-9]+_\d{4}_[A-Z0-9\-]+$"  # 251015_M01548_0646_000000000-M6D7K
         )
         super().__init__(run_dir, configuration)
-        self.flowcell_id = self.run_id.split("_")[-1]  # 000000000-M6D7K
 
 
 @register_run_class

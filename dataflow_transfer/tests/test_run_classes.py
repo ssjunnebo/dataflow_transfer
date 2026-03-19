@@ -170,6 +170,20 @@ def test_confirm_run_type(run_fixture, expected_run_type, request):
 
 
 @pytest.mark.parametrize(
+    "run_fixture, expected_flowcell",
+    [
+        ("novaseqxplus_testobj", "22CVHTLT1"),
+        ("nextseq_testobj", "AAHFHCCM5"),
+        ("miseqseq_testobj", "000000000-M6D7K"),
+        ("miseqseqi100_testobj", "SC2150561-SC3"),
+    ],
+)
+def test_flowcell_id_is_computed(run_fixture, expected_flowcell, request):
+    run_obj = request.getfixturevalue(run_fixture)
+    assert run_obj.flowcell_id == expected_flowcell
+
+
+@pytest.mark.parametrize(
     "run_fixture",
     [
         "novaseqxplus_testobj",

@@ -21,8 +21,8 @@ class NovaSeqXPlusRun(IlluminaRun):
         self.run_id_format = (
             r"^\d{8}_[A-Z0-9]+_\d{4}_[A-Z0-9]+$"  # 20251010_LH00202_0284_B22CVHTLT1
         )
-        self.flowcell_id = self.run_id.split("_")[-1][1:]  # 22CVHTLT1
         super().__init__(run_dir, configuration)
+        self.flowcell_id = self.run_id.split("_")[-1][1:]  # 22CVHTLT1
 
 
 @register_run_class
@@ -35,8 +35,8 @@ class NextSeqRun(IlluminaRun):
         self.run_id_format = (
             r"^\d{6}_[A-Z0-9]+_\d{3}_[A-Z0-9]+$"  # 251015_VH00203_572_AAHFHCCM5
         )
-        self.flowcell_id = self.run_id.split("_")[-1]  # AAHFHCCM5
         super().__init__(run_dir, configuration)
+        self.flowcell_id = self.run_id.split("_")[-1]  # AAHFHCCM5
 
 
 @register_run_class
@@ -49,8 +49,8 @@ class MiSeqRun(IlluminaRun):
         self.run_id_format = (
             r"^\d{6}_[A-Z0-9]+_\d{4}_[A-Z0-9\-]+$"  # 251015_M01548_0646_000000000-M6D7K
         )
-        self.flowcell_id = self.run_id.split("_")[-1]  # 000000000-M6D7K
         super().__init__(run_dir, configuration)
+        self.flowcell_id = self.run_id.split("_")[-1]  # 000000000-M6D7K
 
 
 @register_run_class
@@ -61,5 +61,5 @@ class MiSeqi100Run(IlluminaRun):
 
     def __init__(self, run_dir, configuration):
         self.run_id_format = r"^\d{8}_[A-Z0-9]+_\d{4}_[A-Z0-9]{10}-SC3$"  # 20260128_SH01140_0002_ASC2150561-SC3
-        self.flowcell_id = self.run_id.split("_")[-1][1:]  # SC2150561-SC3
         super().__init__(run_dir, configuration)
+        self.flowcell_id = self.run_id.split("_")[-1][1:]  # SC2150561-SC3

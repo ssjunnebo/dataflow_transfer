@@ -21,8 +21,8 @@ class AVITIRun(ElementRun):
         self.run_id_format = (
             r"^\d{8}_AV\d{6}_(A|BP)\d{10}$"  # 20251007_AV242106_A2507535225
         )
-        self.flowcell_id = self.run_id.split("_")[-1][1:]  # 2507535225
         super().__init__(run_dir, configuration)
+        self.flowcell_id = self.run_id.split("_")[-1][1:]  # 2507535225
 
 
 # TODO: Add Teton run class

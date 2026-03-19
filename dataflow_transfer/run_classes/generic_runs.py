@@ -25,8 +25,7 @@ class Run:
             self.run_dir, ".metadata_rsync_exitcode"
         )
         self.metadata_destination = os.path.join(
-            self.configuration.get("metadata_archive"),
-            getattr(self, "run_type", None),
+            self.sequencer_config.get("metadata_archive"),
             self.run_id,
         )
         self.final_rsync_exitcode_file = os.path.join(

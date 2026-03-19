@@ -19,7 +19,7 @@ class AVITIRun(ElementRun):
 
     def __init__(self, run_dir, configuration):
         self.run_id_format = (
-            r"^\d{8}_AV\d{6}_(A|BP)\d{10}$"  # 20251007_AV242106_A2507535225
+            r"^\d{8}_AV\d{6}_(A|B)\d{10}$"  # 20251007_AV242106_A2507535225
         )
         super().__init__(run_dir, configuration)
         self.flowcell_id = self.run_id.split("_")[-1][1:]  # 2507535225

@@ -12,7 +12,6 @@ def novaseqxplus_testobj(tmp_path):
     config = {
         "log": {"file": "test.log"},
         "transfer_details": {"user": "testuser", "host": "testhost"},
-        "metadata_archive": "/data/metadata_archive",
         "statusdb": {
             "username": "dbuser",
             "password": "dbpass",
@@ -23,6 +22,7 @@ def novaseqxplus_testobj(tmp_path):
             "NovaSeqXPlus": {
                 "remote_destination": "/data/NovaSeqXPlus",
                 "metadata_for_statusdb": ["RunInfo.xml", "RunParameters.xml"],
+                "metadata_archive": "/data/metadata_archive/NovaSeqXPlus",
                 "ignore_folders": ["nosync"],
                 "remote_rsync_options": ["--chmod=Dg+s,g+rw"],
                 "metadata_rsync_options": [
@@ -44,7 +44,6 @@ def nextseq_testobj(tmp_path):
     config = {
         "log": {"file": "test.log"},
         "transfer_details": {"user": "testuser", "host": "testhost"},
-        "metadata_archive": "/data/metadata_archive",
         "statusdb": {
             "username": "dbuser",
             "password": "dbpass",
@@ -55,6 +54,7 @@ def nextseq_testobj(tmp_path):
             "NextSeq": {
                 "remote_destination": "/data/NextSeq",
                 "metadata_for_statusdb": ["RunInfo.xml", "RunParameters.xml"],
+                "metadata_archive": "/data/metadata_archive/NextSeq",
                 "ignore_folders": ["nosync"],
                 "remote_rsync_options": ["--chmod=Dg+s,g+rw"],
                 "metadata_rsync_options": [
@@ -76,7 +76,6 @@ def miseqseq_testobj(tmp_path):
     config = {
         "log": {"file": "test.log"},
         "transfer_details": {"user": "testuser", "host": "testhost"},
-        "metadata_archive": "/data/metadata_archive",
         "statusdb": {
             "username": "dbuser",
             "password": "dbpass",
@@ -87,6 +86,7 @@ def miseqseq_testobj(tmp_path):
             "MiSeq": {
                 "remote_destination": "/data/MiSeq",
                 "metadata_for_statusdb": ["RunInfo.xml", "RunParameters.xml"],
+                "metadata_archive": "/data/metadata_archive/MiSeq",
                 "ignore_folders": ["nosync"],
                 "remote_rsync_options": ["--chmod=Dg+s,g+rw"],
                 "metadata_rsync_options": [
@@ -108,7 +108,6 @@ def miseqseqi100_testobj(tmp_path):
     config = {
         "log": {"file": "test.log"},
         "transfer_details": {"user": "testuser", "host": "testhost"},
-        "metadata_archive": "/data/metadata_archive",
         "statusdb": {
             "username": "dbuser",
             "password": "dbpass",
@@ -119,6 +118,7 @@ def miseqseqi100_testobj(tmp_path):
             "MiSeqi100": {
                 "remote_destination": "/data/MiSeqi100",
                 "metadata_for_statusdb": ["RunInfo.xml", "RunParameters.xml"],
+                "metadata_archive": "/data/metadata_archive/MiSeqi100",
                 "ignore_folders": ["nosync"],
                 "remote_rsync_options": ["--chmod=Dg+s,g+rw"],
                 "metadata_rsync_options": [
@@ -167,6 +167,20 @@ def test_confirm_run_type(run_fixture, expected_run_type, request):
     run_obj.run_id = "invalid_run_id"
     with pytest.raises(ValueError):
         run_obj.confirm_run_type()
+
+
+@pytest.mark.parametrize(
+    "run_fixture, expected_flowcell",
+    [
+        ("novaseqxplus_testobj", "22CVHTLT1"),
+        ("nextseq_testobj", "AAHFHCCM5"),
+        ("miseqseq_testobj", "000000000-M6D7K"),
+        ("miseqseqi100_testobj", "SC2150561-SC3"),
+    ],
+)
+def test_flowcell_id_is_computed(run_fixture, expected_flowcell, request):
+    run_obj = request.getfixturevalue(run_fixture)
+    assert run_obj.flowcell_id == expected_flowcell
 
 
 @pytest.mark.parametrize(

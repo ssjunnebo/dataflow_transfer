@@ -20,7 +20,6 @@ Dataflow Transfer monitors sequencing run directories and orchestrates the trans
 - Dependencies listed in [requirements.txt](requirements.txt):
   - PyYAML
   - click
-  - xmltodict
   - ibmcloudant
 - [run-one](https://launchpad.net/ubuntu/+source/run-one)
 
@@ -91,16 +90,13 @@ statusdb:
   username: couchdb_user
   password: couchdb_password
   url: couchdb.host.com
-  database: sequencing_runs
+  database: flowcell_status
 
 sequencers:
   NovaSeqXPlus:
     sequencing_path: /sequencing/NovaSeqXPlus
     remote_destination: /Illumina/NovaSeqXPlus
     metadata_archive: /path/to/metadata/archive/NovaSeqXPlus_data
-    metadata_for_statusdb:
-      - RunInfo.xml
-      - RunParameters.xml
     ignore_folders:
       - nosync
     remote_rsync_options:
@@ -115,8 +111,8 @@ sequencers:
 1. **Discovery**: Scans configured sequencing directories for run folders
 2. **Validation**: Confirms run ID matches expected format for the sequencer type
 3. **Transfer Phases**:
-   - **Sequencing Phase**: Starts continuous background rsync transfer while sequencing is ongoing (when the final sequencing file doesn't exist). Uploads status and metadata files (specified for each sequencer type in the config with `metadata_for_statusdb`) to database.
-   - **Final Transfer**: After sequencing completes (final sequencing file appears), syncs specified metadata file to archive location, initiates final rsync transfer and captures exit codes.
+   - **Sequencing Phase**: Starts continuous background rsync transfer while sequencing is ongoing (when the final sequencing file doesn't exist). Uploads status to database.
+   - **Final Transfer**: After sequencing completes (final sequencing file appears), syncs specified metadata files to archive location, initiates final rsync transfer and captures exit codes.
    - **Completion**: Updates database when transfer was successful.
 
 ### Status Tracking
@@ -145,10 +141,9 @@ Run status is tracked in CouchDB with events including:
 ## Assumptions
 
 - Run directories are named according to sequencer-specific ID formats (defined in run classes)
-- Final completion is indicated by the presence of a sequencer-specific final file (e.g., `RTAComplete.txt` for Illumina)
+- Final completion is indicated by the presence of a sequencer-specific final file (e.g., `CopyComplete.txt` for Illumina)
 - Remote storage is accessible via rsync over SSH
-- CouchDB is accessible and the database exists
-- Metadata files (e.g., RunInfo.xml) are present in run directories for status database updates and sync to metadata archive location
+- CouchDB is accessible and the database specified in the config exists and has a ddoc called `events` with a view called `current_status_per_runfolder` that emits a dictionary of all the statuses and their current state (true/false) 
 - The flowcell ID is set to correspond to the ID that is scanned with a barcode scanner during sequencing setup in the lab
 
 ### Status Files

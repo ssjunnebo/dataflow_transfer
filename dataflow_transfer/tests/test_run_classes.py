@@ -21,7 +21,6 @@ def novaseqxplus_testobj(tmp_path):
         "sequencers": {
             "NovaSeqXPlus": {
                 "remote_destination": "/data/NovaSeqXPlus",
-                "metadata_for_statusdb": ["RunInfo.xml", "RunParameters.xml"],
                 "metadata_archive": "/data/metadata_archive/NovaSeqXPlus",
                 "ignore_folders": ["nosync"],
                 "remote_rsync_options": ["--chmod=Dg+s,g+rw"],
@@ -53,7 +52,6 @@ def nextseq_testobj(tmp_path):
         "sequencers": {
             "NextSeq": {
                 "remote_destination": "/data/NextSeq",
-                "metadata_for_statusdb": ["RunInfo.xml", "RunParameters.xml"],
                 "metadata_archive": "/data/metadata_archive/NextSeq",
                 "ignore_folders": ["nosync"],
                 "remote_rsync_options": ["--chmod=Dg+s,g+rw"],
@@ -85,7 +83,6 @@ def miseqseq_testobj(tmp_path):
         "sequencers": {
             "MiSeq": {
                 "remote_destination": "/data/MiSeq",
-                "metadata_for_statusdb": ["RunInfo.xml", "RunParameters.xml"],
                 "metadata_archive": "/data/metadata_archive/MiSeq",
                 "ignore_folders": ["nosync"],
                 "remote_rsync_options": ["--chmod=Dg+s,g+rw"],
@@ -117,7 +114,6 @@ def miseqseqi100_testobj(tmp_path):
         "sequencers": {
             "MiSeqi100": {
                 "remote_destination": "/data/MiSeqi100",
-                "metadata_for_statusdb": ["RunInfo.xml", "RunParameters.xml"],
                 "metadata_archive": "/data/metadata_archive/MiSeqi100",
                 "ignore_folders": ["nosync"],
                 "remote_rsync_options": ["--chmod=Dg+s,g+rw"],
@@ -469,16 +465,6 @@ def test_update_statusdb(
         def update_db_doc(self, doc):
             self.updated_doc = doc
 
-    import dataflow_transfer.utils.filesystem as fs
-
-    def mock_locate_metadata(metadata_list, run_dir):
-        return []
-
-    def mock_parse_metadata_files(files):
-        return {}
-
-    fs.locate_metadata = mock_locate_metadata
-    fs.parse_metadata_files = mock_parse_metadata_files
     mock_db = MockDB()
     run_obj.db = mock_db
     run_obj.update_statusdb(status=status_to_update)

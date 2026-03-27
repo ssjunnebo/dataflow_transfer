@@ -1,4 +1,3 @@
-import json
 import os
 import tempfile
 from subprocess import CalledProcessError
@@ -10,8 +9,6 @@ from dataflow_transfer.utils.filesystem import (
     check_exit_status,
     find_runs,
     get_run_dir,
-    locate_metadata,
-    parse_metadata_files,
     rsync_is_running,
     submit_background_process,
 )
@@ -84,38 +81,6 @@ class TestSubmitBackgroundProcess:
         mock_popen.assert_called_once()
 
 
-class TestParseMetadataFiles:
-    def test_parse_json_file(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            json_file = os.path.join(tmpdir, "metadata.json")
-            with open(json_file, "w") as f:
-                json.dump({"key": "value"}, f)
-            metadata = parse_metadata_files([json_file])
-            assert "metadata.json" in metadata
-            assert metadata["metadata.json"]["key"] == "value"
-
-    def test_parse_xml_file(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            xml_file = os.path.join(tmpdir, "metadata.xml")
-            with open(xml_file, "w") as f:
-                f.write("<root><key>value</key></root>")
-            metadata = parse_metadata_files([xml_file])
-            assert "metadata.xml" in metadata
-            assert metadata["metadata.xml"]["root"]["key"] == "value"
-
-    def test_unsupported_file_type(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            txt_file = os.path.join(tmpdir, "metadata.txt")
-            with open(txt_file, "w") as f:
-                f.write("content")
-            metadata = parse_metadata_files([txt_file])
-            assert "metadata.txt" not in metadata
-
-    def test_parse_nonexistent_file(self):
-        metadata = parse_metadata_files(["/nonexistent/file.json"])
-        assert metadata == {}
-
-
 class TestCheckExitStatus:
     def test_exit_status_zero(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -133,27 +98,3 @@ class TestCheckExitStatus:
 
     def test_exit_status_file_not_found(self):
         assert check_exit_status("/nonexistent/file") is False
-
-
-class TestLocateMetadata:
-    def test_locate_metadata_found(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            metadata_file = os.path.join(tmpdir, "metadata.json")
-            open(metadata_file, "w").close()
-            located = locate_metadata(["metadata.json"], tmpdir)
-            assert len(located) == 1
-            assert metadata_file in located
-
-    def test_locate_metadata_not_found(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            located = locate_metadata(["nonexistent.json"], tmpdir)
-            assert len(located) == 0
-
-    def test_locate_metadata_multiple_patterns(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            open(os.path.join(tmpdir, "meta1.json"), "w").close()
-            open(os.path.join(tmpdir, "meta2.json"), "w").close()
-            located = locate_metadata(["meta1.json", "meta2.json"], tmpdir)
-            assert len(located) == 2
-            assert os.path.join(tmpdir, "meta1.json") in located
-            assert os.path.join(tmpdir, "meta2.json") in located

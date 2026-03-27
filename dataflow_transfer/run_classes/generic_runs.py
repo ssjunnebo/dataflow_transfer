@@ -158,8 +158,7 @@ class Run:
         return True if current_statuses.get(status_name) else False
 
     def update_statusdb(self, status, additional_info=None):
-        """Update the statusdb document for this run with the given status
-        and associated metadata files."""
+        """Update the statusdb document for this run with the given status."""
         db_doc = (
             self.db.get_db_doc(ddoc="lookup", view="runfolder_id", run_id=self.run_id)
             or {}
@@ -179,14 +178,7 @@ class Run:
                 "runfolder_id": self.run_id,
                 "flowcell_id": self.flowcell_id,
                 "events": [],
-                "files": {},
             }
-        files_to_include = fs.locate_metadata(
-            self.sequencer_config.get("metadata_for_statusdb", []),
-            self.run_dir,
-        )
-        parsed_files = fs.parse_metadata_files(files_to_include)
-        db_doc["files"].update(parsed_files)
         db_doc["events"].append(
             {
                 "event_type": status,

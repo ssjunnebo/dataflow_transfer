@@ -1,9 +1,6 @@
-import json
 import logging
 import os
 import subprocess
-
-import xmltodict
 
 logger = logging.getLogger(__name__)
 

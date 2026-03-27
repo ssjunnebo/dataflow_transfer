@@ -31,7 +31,6 @@ requires-python = ">=3.11"
 dependencies = [
     "click",
     "PyYAML",
-    "xmltodict",
     "ibmcloudant",
 ]
 

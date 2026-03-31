@@ -145,7 +145,7 @@ def mock_statusdbsession(monkeypatch):
                 if run_type == "NovaSeqXPlus":
                     return r"^(?P<date>\d{8})_(?P<instrument>[A-Z0-9]+)_\d{4}_(?P<position>(A|B))(?P<flowcell_id>[A-Z0-9]+)$"
                 elif run_type == "NextSeq":
-                    return r"^(?P<date>\d{6})_(?P<instrument>[A-Z0-9]+)_\d{3}_(?P<position>(A|B))(?P<flowcell_id>[A-Z0-9]+)$"
+                    return r"^(?P<date>\d{6})_(?P<instrument>[A-Z0-9]+)_\d{3}_(?P<flowcell_id>[A-Z0-9]+)$"
                 elif run_type == "MiSeq":
                     return r"^(?P<date>\d{6})_(?P<instrument>[A-Z0-9]+)_\d{4}_(?P<flowcell_id>[A-Z0-9\-]+)$"
                 elif run_type == "MiSeqi100":
@@ -478,8 +478,12 @@ def test_update_statusdb(
     class MockDB:
         def __init__(self):
             self.updated_doc = None
+            self.db_name = "mock_db"
 
-        def get_db_doc(self, ddoc, view, run_id):
+        def get_doc_id(self, ddoc, view, run_id):
+            return "mock_doc_id"
+
+        def get_document(self, db, doc_id):
             return {"events": existing_statuses, "files": {}}
 
         def update_db_doc(self, doc):

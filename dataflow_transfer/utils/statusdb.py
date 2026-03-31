@@ -55,19 +55,6 @@ class StatusdbSession:
         # re-raise last exception for caller to handle
         raise last_exception
 
-    def get_db_doc(self, ddoc, view, run_id):
-        """Retrieve a document from the database via retried call."""
-        doc_id = self.get_doc_id(
-            ddoc, view, run_id
-        )  # TODO: refactor to use get_document
-        if doc_id:
-            return self._retry_call(
-                lambda: self.connection.get_document(
-                    db=self.db_name, doc_id=doc_id
-                ).get_result()
-            )
-        return None
-
     def get_document(self, db, doc_id):
         """Retrieve a document from any database via retried call."""
         return self._retry_call(

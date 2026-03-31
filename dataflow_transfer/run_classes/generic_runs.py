@@ -38,6 +38,7 @@ class Run:
         self.remote_destination = self.sequencer_config.get("remote_destination")
         self.db = StatusdbSession(self.configuration.get("statusdb"))
         self.run_id_format = self._resolve_run_id_format()
+        self.flowcell_id = re.match(self.run_id_format, self.run_id).group("flowcell_id") if self.run_id_format else None
 
     def _resolve_run_id_format(self):
         """Resolve the run ID regex from central config."""
@@ -181,10 +182,15 @@ class Run:
 
     def update_statusdb(self, status, additional_info=None):
         """Update the statusdb document for this run with the given status."""
-        db_doc = (
-            self.db.get_db_doc(ddoc="lookup", view="runfolder_id", run_id=self.run_id)
-            or {}
+        doc_id = self.db.get_doc_id(
+            ddoc="lookup", view="runfolder_id", run_id=self.run_id
         )
+        if doc_id:
+            db_doc = self.db.get_document(
+                db=self.db.db_name, doc_id=doc_id
+            )
+        else:
+            db_doc = {}
 
         statuses_to_only_update_once = [
             "sequencing_started",

@@ -21,7 +21,6 @@ class AVITIRun(ElementRun):
 
     def __init__(self, run_dir, configuration):
         super().__init__(run_dir, configuration)
-        self.flowcell_id = self.run_id.split("_")[-1][1:]  # 2507535225
 
 
 # TODO: Add Teton run class

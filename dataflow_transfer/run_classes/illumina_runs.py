@@ -11,7 +11,6 @@ class IlluminaRun(Run):
     def __init__(self, run_dir, configuration):
         super().__init__(run_dir, configuration)
         self.final_file = "CopyComplete.txt"
-        self.flowcell_id = self.run_id.split("_")[-1]
 
 
 @register_run_class
@@ -22,7 +21,6 @@ class NovaSeqXPlusRun(IlluminaRun):
 
     def __init__(self, run_dir, configuration):
         super().__init__(run_dir, configuration)
-        self.flowcell_id = self.run_id.split("_")[-1][1:]  # 22CVHTLT1
 
 
 @register_run_class
@@ -53,4 +51,3 @@ class MiSeqi100Run(IlluminaRun):
 
     def __init__(self, run_dir, configuration):
         super().__init__(run_dir, configuration)
-        self.flowcell_id = self.run_id.split("_")[-1][1:]  # SC2150561-SC3

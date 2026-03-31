@@ -143,7 +143,8 @@ Run status is tracked in CouchDB with events including:
 - Run directories are named according to sequencer-specific ID formats (defined in run classes)
 - Final completion is indicated by the presence of a sequencer-specific final file (e.g., `CopyComplete.txt` for Illumina)
 - Remote storage is accessible via rsync over SSH
-- CouchDB is accessible and the database specified in the config exists and has a ddoc called `events` with a view called `current_status_per_runfolder` that emits a dictionary of all the statuses and their current state (true/false) 
+- CouchDB is accessible and the database specified in the config exists and has a ddoc called `events` with a view called `current_status_per_runfolder` that emits a dictionary of all the statuses and their current state (true/false)
+- CouchDB is accessible and the database `gs_configs` contains a document called `regex_patterns` containing the regexes used to identify different run types.
 - The flowcell ID is set to correspond to the ID that is scanned with a barcode scanner during sequencing setup in the lab
 
 ### Status Files
@@ -200,3 +201,4 @@ To add support for a new sequencer, add the following to dataflow_transfer:
 2. Import the new class in `dataflow_transfer/run_classes/__init__.py`
 3. Add a test fixture for the new run in `dataflow_transfer/tests/test_run_classes.py` and include it in the relevant tests
 4. Add a section for the sequencer in the config file
+5. Add a regular expression matching the run folder name of the sequencer in the CouchDB database `gs_configs`, in the document called `regex_patterns`.

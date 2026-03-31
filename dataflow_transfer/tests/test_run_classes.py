@@ -140,6 +140,26 @@ def mock_statusdbsession(monkeypatch):
         def get_db_doc(self, ddoc, view, run_id):
             return None
 
+        def get_regex_pattern(self, run_family, run_type):
+            if run_family == "Illumina":
+                if run_type == "NovaSeqXPlus":
+                    return r"^(?P<date>\d{8})_(?P<instrument>[A-Z0-9]+)_\d{4}_(?P<position>(A|B))(?P<flowcell_id>[A-Z0-9]+)$"
+                elif run_type == "NextSeq":
+                    return r"^(?P<date>\d{6})_(?P<instrument>[A-Z0-9]+)_\d{3}_(?P<position>(A|B))(?P<flowcell_id>[A-Z0-9]+)$"
+                elif run_type == "MiSeq":
+                    return r"^(?P<date>\d{6})_(?P<instrument>[A-Z0-9]+)_\d{4}_(?P<flowcell_id>[A-Z0-9\-]+)$"
+                elif run_type == "MiSeqi100":
+                    return r"^(?P<date>\d{8})_(?P<instrument>[A-Z0-9]+)_\d{4}_A(?P<flowcell_id>[A-Z0-9]{9}-SC3)$"
+            elif run_family == "ONT":
+                if run_type == "PromethION":
+                    return r"^(?P<date>\d{8})_(?P<time>\d{4})_(?P<position>[A-Z0-9]{2})_(?P<flowcell_id>P[A-Z0-9]+)_(?P<run_hash>[a-f0-9]{8})$"
+                elif run_type == "MinION":
+                    return r"^(?P<date>\d{8})_(?P<time>\d{4})_(?P<position>MN[A-Z0-9]+)_(?P<flowcell_id>[A-Z0-9]+)_(?P<run_hash>[a-f0-9]{8})$"
+            elif run_family == "Element":
+                if run_type == "AVITI":
+                    return r"^(?P<date>\d{8})_(?P<instrument>AV\d{6})_(?P<position>(A|B))(?P<flowcell_id>\d{10})$"
+            return None
+
         def update_db_doc(self, doc):
             pass
 

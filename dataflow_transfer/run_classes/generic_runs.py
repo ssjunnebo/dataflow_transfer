@@ -54,9 +54,7 @@ class Run:
                 )
             except Exception as exc:
                 logger.warning(
-                    "Unable to load run_id_format for %s from regex config: %s",
-                    self.run_type,
-                    exc,
+                    f"Unable to load run_id_format for {self.run_type} from regex config: {exc}"
                 )
 
         return run_id_format

@@ -57,7 +57,9 @@ class StatusdbSession:
 
     def get_db_doc(self, ddoc, view, run_id):
         """Retrieve a document from the database via retried call."""
-        doc_id = self.get_doc_id(ddoc, view, run_id)
+        doc_id = self.get_doc_id(
+            ddoc, view, run_id
+        )  # TODO: refactor to use get_document
         if doc_id:
             return self._retry_call(
                 lambda: self.connection.get_document(
@@ -65,6 +67,32 @@ class StatusdbSession:
                 ).get_result()
             )
         return None
+
+    def get_document(self, db, doc_id):
+        """Retrieve a document from any database via retried call."""
+        return self._retry_call(
+            lambda: self.connection.get_document(db=db, doc_id=doc_id).get_result()
+        )
+
+    def get_regex_pattern(
+        self,
+        run_family,
+        run_type,
+        regex_db="gs_configs",
+        regex_doc_id="regex_patterns",
+    ):
+        """Lookup the python regex pattern for a run type from the central regex config document."""
+        regex_doc = self.get_document(db=regex_db, doc_id=regex_doc_id)
+        if not regex_doc:
+            return None
+
+        flowcell_patterns = regex_doc.get("flowcell_patterns", {})
+        family_patterns = flowcell_patterns.get(run_family, {})
+        if not family_patterns:
+            return None
+
+        pattern = family_patterns.get(run_type)
+        return pattern
 
     def get_doc_id(self, ddoc, view, run_id):
         """Retrieve a document ID from the database via retried call."""

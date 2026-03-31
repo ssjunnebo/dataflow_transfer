@@ -12,6 +12,10 @@ logger = logging.getLogger(__name__)
 class Run:
     """Defines a generic sequencing run"""
 
+    run_type = None
+    run_family = None
+    default_run_id_format = None
+
     def __init__(self, run_dir, configuration):
         self.run_dir = run_dir
         self.run_id = os.path.basename(run_dir)
@@ -33,6 +37,24 @@ class Run:
         )
         self.remote_destination = self.sequencer_config.get("remote_destination")
         self.db = StatusdbSession(self.configuration.get("statusdb"))
+        self.run_id_format = self._resolve_run_id_format()
+
+    def _resolve_run_id_format(self):
+        """Resolve the run ID regex from central config."""
+        run_id_format = None
+        if self.run_family and self.run_type:
+            try:
+                run_id_format = self.db.get_regex_pattern(
+                    self.run_family, self.run_type
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Unable to load run_id_format for %s from regex config: %s",
+                    self.run_type,
+                    exc,
+                )
+
+        return run_id_format
 
     def confirm_run_type(self):
         """Compare run ID with expected format for the run type."""

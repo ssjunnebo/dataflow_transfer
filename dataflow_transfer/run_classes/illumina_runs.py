@@ -6,6 +6,8 @@ from .registry import register_run_class
 class IlluminaRun(Run):
     """Defines an Illumina sequencing run"""
 
+    run_family = "Illumina"
+
     def __init__(self, run_dir, configuration):
         super().__init__(run_dir, configuration)
         self.final_file = "CopyComplete.txt"
@@ -19,9 +21,6 @@ class NovaSeqXPlusRun(IlluminaRun):
     run_type = "NovaSeqXPlus"
 
     def __init__(self, run_dir, configuration):
-        self.run_id_format = (
-            r"^\d{8}_[A-Z0-9]+_\d{4}_[A-Z0-9]+$"  # 20251010_LH00202_0284_B22CVHTLT1
-        )
         super().__init__(run_dir, configuration)
         self.flowcell_id = self.run_id.split("_")[-1][1:]  # 22CVHTLT1
 
@@ -33,9 +32,6 @@ class NextSeqRun(IlluminaRun):
     run_type = "NextSeq"
 
     def __init__(self, run_dir, configuration):
-        self.run_id_format = (
-            r"^\d{6}_[A-Z0-9]+_\d{3}_[A-Z0-9]+$"  # 251015_VH00203_572_AAHFHCCM5
-        )
         super().__init__(run_dir, configuration)
 
 
@@ -46,9 +42,6 @@ class MiSeqRun(IlluminaRun):
     run_type = "MiSeq"
 
     def __init__(self, run_dir, configuration):
-        self.run_id_format = (
-            r"^\d{6}_[A-Z0-9]+_\d{4}_[A-Z0-9\-]+$"  # 251015_M01548_0646_000000000-M6D7K
-        )
         super().__init__(run_dir, configuration)
 
 
@@ -59,6 +52,5 @@ class MiSeqi100Run(IlluminaRun):
     run_type = "MiSeqi100"
 
     def __init__(self, run_dir, configuration):
-        self.run_id_format = r"^\d{8}_[A-Z0-9]+_\d{4}_[A-Z0-9]{10}-SC3$"  # 20260128_SH01140_0002_ASC2150561-SC3
         super().__init__(run_dir, configuration)
         self.flowcell_id = self.run_id.split("_")[-1][1:]  # SC2150561-SC3

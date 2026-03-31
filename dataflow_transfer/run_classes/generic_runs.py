@@ -14,7 +14,6 @@ class Run:
 
     run_type = None
     run_family = None
-    default_run_id_format = None
 
     def __init__(self, run_dir, configuration):
         self.run_dir = run_dir

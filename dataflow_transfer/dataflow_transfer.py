@@ -51,6 +51,10 @@ def process_run(run_dir, sequencer, config):
                 f"Run {run_dir} is already marked as sequenced, but transfer not complete. "
                 "Will attempt final transfer again."
             )
+        if not run.has_status("sequencing_started"):
+            run.update_statusdb(
+                status="sequencing_started"
+            )  # Cover case where sequencing finished before sequencing_started was set (e.g. due to paused cronjob)
         run.update_statusdb(status="sequencing_finished")
         run.start_transfer(final=True)
         return
